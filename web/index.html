@@ -1,0 +1,1504 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prüfprotokoll – Über- und Fehlerstrom-Schutzeinrichtungen</title>
+  <!-- integrity/crossorigin (SRI): verhindert, dass ein kompromittiertes CDN unbemerkt
+       fremden Code/CSS ausliefern könnte – der Browser vergleicht den Hash vor der
+       Ausführung und bricht bei Abweichung ab, statt den Inhalt stillschweigend zu laden. -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet"
+        integrity="sha384-tViUnnbYAV00FLIhhi3v/dWt3Jxw4gZQcNoSCxCIFNJVCx7/D55/wXsrNIRANwdD" crossorigin="anonymous">
+  <style>
+    :root { --primary:#1a3a5c; --accent:#e8a020; }
+    body { background:#eef2f7; font-family:'Segoe UI',system-ui,sans-serif; min-height:100vh; }
+
+    /* ── Topbar ────────────────────────────────── */
+    .topbar { background:var(--primary); padding:.7rem 1.5rem; display:flex; align-items:center;
+              justify-content:space-between; position:sticky; top:0; z-index:1000;
+              box-shadow:0 2px 8px rgba(0,0,0,.3); }
+    .topbar-title { color:#fff; font-size:1rem; font-weight:700; display:flex; align-items:center; gap:.6rem; }
+
+    /* ── Stepper ───────────────────────────────── */
+    .stepper { display:flex; padding:1.2rem 0 .5rem; overflow-x:auto; }
+    .step-item { flex:1; min-width:68px; display:flex; flex-direction:column;
+                 align-items:center; position:relative; }
+    /* Die Verbindungslinie zwischen zwei Kreisen zeichne ich als ::after-Pseudoelement
+       auf dem Step-Item selbst statt als eigenes DOM-Element – so bleibt buildStepper()
+       simpel (kein Trennelement zwischen den Steps nötig) und die Linie skaliert automatisch
+       mit der Breite jedes Step-Items. left/width sind so berechnet, dass die Linie erst
+       hinter dem eigenen Kreis (halbe Item-Breite + halber Kreisdurchmesser) beginnt und
+       vor dem nächsten Kreis endet. */
+    .step-item:not(:last-child)::after {
+      content:''; position:absolute; top:17px; left:calc(50% + 18px);
+      width:calc(100% - 36px); height:2px; background:#dee2e6; z-index:0; }
+    /* Ist der Step bereits abgeschlossen (Klasse "done"), färbe ich auch die Linie zum
+       nächsten Kreis ein – dadurch sieht man auf einen Blick, bis wohin man schon durch ist. */
+    .step-item.done:not(:last-child)::after { background:var(--primary); }
+    .step-circle { width:34px; height:34px; border-radius:50%; border:2px solid #dee2e6;
+      background:#fff; display:flex; align-items:center; justify-content:center;
+      font-weight:700; font-size:.82rem; color:#adb5bd; z-index:1; position:relative;
+      transition:all .25s; cursor:pointer; }
+    /* Bubble ist per Klick anspringbar (siehe buildStepper()) – der Hover-Ring zeigt das an. */
+    .step-circle:hover { box-shadow:0 0 0 4px rgba(26,58,92,.15); }
+    .step-item.active .step-circle { border-color:var(--primary); background:var(--primary); color:#fff; box-shadow:0 0 0 4px rgba(26,58,92,.15); }
+    .step-item.done .step-circle  { border-color:var(--primary); background:var(--primary); color:#fff; }
+    .step-label { font-size:.68rem; color:#6c757d; text-align:center; margin-top:5px;
+                  max-width:72px; line-height:1.25; }
+    .step-item.active .step-label { color:var(--primary); font-weight:700; }
+    .step-item.done  .step-label  { color:var(--primary); }
+
+    /* ── Step cards ────────────────────────────── */
+    .step-card { background:#fff; border-radius:10px; box-shadow:0 2px 14px rgba(0,0,0,.09);
+                 display:none; overflow:hidden; }
+    .step-card.active { display:block; }
+    .step-head { background:var(--primary); color:#fff; font-weight:700; font-size:1rem;
+                 padding:.8rem 1.25rem; display:flex; align-items:center; gap:.6rem; }
+    .step-body { padding:1.5rem 1.25rem; }
+    .step-nav  { background:#f8fafc; border-top:1px solid #e9ecef; padding:.85rem 1.25rem;
+                 display:flex; justify-content:space-between; align-items:center; }
+    .step-nav .counter { font-size:.82rem; color:#6c757d; font-weight:600; }
+
+    /* ── Form helpers ──────────────────────────── */
+    label.fw-sb { font-weight:600; font-size:.88rem; margin-bottom:.25rem; display:block; }
+    .sec-label { font-size:.92rem; font-weight:700; color:var(--primary); border-bottom:2px solid #e9ecef;
+                 padding-bottom:.35rem; margin-bottom:1rem; }
+
+    /* ── Tables ────────────────────────────────── */
+    .table th { background:var(--primary); color:#fff; font-size:.78rem; padding:.4rem .5rem; vertical-align:middle; }
+    .table td { font-size:.83rem; vertical-align:middle; padding:.3rem .5rem; }
+    .table-striped>tbody>tr:nth-of-type(odd)>* { background:#f8fafc; }
+    .check-cell { text-align:center; }
+    .mess-th  { font-size:.72rem; text-align:center; }
+    .mess-inp { font-size:.78rem; padding:.18rem .3rem; }
+
+    /* ── Netzform tags ─────────────────────────── */
+    .nf-tag { display:inline-flex; align-items:center; gap:.3rem; background:#e9ecef;
+              border-radius:20px; padding:.28rem .9rem; font-size:.85rem; cursor:pointer;
+              border:2px solid transparent; transition:all .2s; user-select:none; }
+    .nf-tag:hover  { border-color:#adb5bd; }
+    .nf-tag.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+    .nf-tag .del   { font-size:.7rem; opacity:.6; cursor:pointer; }
+    .nf-tag .del:hover { opacity:1; }
+
+    /* ── Norm badges ───────────────────────────── */
+    .norm-check { display:inline-flex; align-items:center; gap:.3rem; background:#f0f4f8;
+                  border-radius:6px; padding:.3rem .8rem; font-size:.83rem;
+                  border:1px solid #dee2e6; }
+    .norm-check input { cursor:pointer; }
+    .norm-check.custom { border-color:#adb5bd; }
+    .norm-del { background:none; border:none; color:#dc3545; font-size:.75rem; padding:0; cursor:pointer; opacity:.7; }
+    .norm-del:hover { opacity:1; }
+
+    /* ── Prüfer list ───────────────────────────── */
+    .pruefer-row { display:flex; align-items:center; justify-content:space-between;
+                   padding:.4rem .2rem; border-bottom:1px solid #f0f0f0; }
+    .pruefer-row:last-child { border-bottom:none; }
+
+    /* ── Messprotokoll Tabelle ─────────────────── */
+    /* table-layout:fixed statt des Browser-Standards "auto", weil die Messprotokoll-Tabelle
+       16 eng beieinanderliegende Spalten hat – bei "auto" würde der Browser die Spaltenbreiten
+       je nach Zellinhalt neu berechnen und die Tabelle würde bei jeder Eingabe leicht "springen".
+       Mit "fixed" bleiben die Breiten stabil, sobald die erste Zeile gerendert ist. */
+    .mess-tbl { table-layout:fixed; width:100%; border-collapse:collapse; font-size:.72rem; }
+    .mess-tbl th { background:var(--primary); color:#fff; padding:3px 4px; text-align:center;
+                   vertical-align:middle; font-size:.68rem; line-height:1.2; border:1px solid #27527a; }
+    .mess-tbl td { padding:2px 3px; border:1px solid #dee2e6; vertical-align:middle; }
+    .mess-tbl tbody tr:nth-child(odd) td { background:#f8fafc; }
+    .mess-tbl tbody tr:nth-child(even) td { background:#fff; }
+    .mess-tbl .mess-inp-cell { width:100%; font-size:.72rem; padding:2px 3px;
+                      border:1px solid #ced4da; border-radius:3px; background:transparent; }
+    .mess-tbl .mess-inp-cell:focus { outline:none; border-color:var(--primary);
+                             background:#fff; box-shadow:0 0 0 2px rgba(26,58,92,.15); }
+
+    /* ── Signature ─────────────────────────────── */
+    /* Solange noch nicht unterschrieben wurde, ist der Rahmen gestrichelt (signalisiert
+       "hier bitte reinzeichnen"); sobald signiert wurde, wird auf einen durchgezogenen
+       Rahmen umgeschaltet – das gibt sofortiges visuelles Feedback ohne Text. */
+    .sig-wrap { border:2px dashed #adb5bd; border-radius:8px; background:#fafafa;
+                position:relative; cursor:crosshair; }
+    /* touch-action:none ist wichtig auf Tablets/Touchscreens – ohne das würde das Zeichnen
+       auf dem Canvas gleichzeitig die Seite scrollen/zoomen, weil der Browser die
+       Touch-Geste sonst für Scroll-Gesten reserviert. width:100% + display:block sorgt
+       dafür, dass das Canvas die volle Breite der Karte einnimmt (Höhe wird separat per JS
+       auf die tatsächliche Canvas-Auflösung gesetzt, siehe Signatur-Setup weiter unten). */
+    .sig-wrap canvas { display:block; width:100%; touch-action:none; border-radius:6px; }
+    .sig-wrap.signed { border-color:var(--primary); border-style:solid; background:#fff; }
+    /* Der Platzhaltertext ("Hier unterschreiben" o.ä.) liegt absolut über dem Canvas und
+       wird einfach ausgeblendet sobald signiert wurde (Klasse .signed) – pointer-events:none
+       stellt sicher, dass der Hinweistext selbst nie die Zeichen-Events auf dem Canvas darunter
+       abfängt. */
+    .sig-hint { position:absolute; inset:0; display:flex; align-items:center;
+                justify-content:center; color:#adb5bd; font-size:.9rem; pointer-events:none; }
+    .sig-wrap.signed .sig-hint { display:none; }
+  </style>
+</head>
+<body>
+
+<!-- ── TOPBAR ──────────────────────────────────────────────────── -->
+<div class="topbar">
+  <div class="topbar-title">
+    <span style="color:var(--accent);font-size:1.4rem"><i class="bi bi-lightning-charge-fill"></i></span>
+    Prüfprotokoll – Über- und Fehlerstrom-Schutzeinrichtungen
+  </div>
+
+  <div class="d-flex gap-2 flex-wrap align-items-center">
+    <button class="btn btn-sm btn-outline-light" onclick="window.open(location.href, '_blank')" title="Neues leeres Formular in einem neuen Tab öffnen">
+      <i class="bi bi-plus-square me-1"></i>Neues Formular
+    </button>
+    <button class="btn btn-warning btn-sm" onclick="doExport()"><i class="bi bi-file-earmark-pdf me-1"></i>PDF erstellen</button>
+  </div>
+</div>
+
+<div class="container-xl py-3 pb-5">
+
+  <!-- STEPPER -->
+  <div class="stepper" id="stepper"></div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       STEP 1 – Allgemeine Angaben
+       Die id-Attribute der Inputs hier (kunde, station, projektnummer, …) werden 1:1
+       von collectData() über document.getElementById() ausgelesen und landen unter
+       data.kopfdaten – ich verzichte bewusst auf name-Attribute/FormData, weil die
+       Werte sowohl im Formular selbst als auch im PDF-Export gebraucht werden und über
+       die id am einfachsten gezielt anzusprechen sind.
+  ══════════════════════════════════════════════════════════════ -->
+  <div class="step-card" id="step-1">
+    <div class="step-head"><i class="bi bi-building"></i>Allgemeine Angaben</div>
+    <div class="step-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="fw-sb">Kunde</label>
+          <input type="text" class="form-control" id="kunde" value="HH Energie Netze">
+        </div>
+        <div class="col-md-6">
+          <label class="fw-sb">Station / Anlage</label>
+          <input type="text" class="form-control" id="station">
+        </div>
+        <div class="col-md-4">
+          <label class="fw-sb">Projektnummer</label>
+          <input type="text" class="form-control" id="projektnummer">
+        </div>
+        <div class="col-md-4">
+          <label class="fw-sb">Stromverteilernummer</label>
+          <input type="text" class="form-control" id="stromverteilernummer">
+        </div>
+        <div class="col-md-3">
+          <label class="fw-sb">Netzspannung</label>
+          <div class="input-group">
+            <input type="number" class="form-control" id="netzspannung" value="400">
+            <span class="input-group-text">V</span>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <label class="fw-sb">Frequenz</label>
+          <div class="input-group">
+            <input type="number" class="form-control" id="frequenz" value="50">
+            <span class="input-group-text">Hz</span>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <label class="fw-sb">Spannungsart</label>
+          <div class="d-flex gap-2 mt-1">
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="spannungsart" id="sa_ac" value="AC" checked>
+              <label class="form-check-label" for="sa_ac">AC</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="spannungsart" id="sa_dc" value="DC">
+              <label class="form-check-label" for="sa_dc">DC</label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Netzform: keine festen Radiobuttons, weil TN/TT/IT nicht die einzigen in der
+             Praxis vorkommenden Bezeichnungen sind (z.B. TN-C-S, TN-S) – stattdessen eine
+             Tag-Auswahl mit fest vorgegebenen Standard-Netzformen (per JS befüllt) plus
+             Möglichkeit, über das Eingabefeld eigene Netzformen zu ergänzen. -->
+        <div class="col-12">
+          <label class="fw-sb">Netzform wählen</label>
+          <div class="d-flex flex-wrap gap-2 align-items-center mb-2" id="nf-tags"></div>
+          <div class="input-group input-group-sm" style="max-width:300px">
+            <input type="text" class="form-control" id="nf-input"
+                   placeholder="Eigene Netzform hinzufügen …" maxlength="20"
+                   onkeydown="if(event.key==='Enter'){addNetzform();event.preventDefault();}">
+            <button class="btn btn-outline-primary" onclick="addNetzform()">
+              <i class="bi bi-plus-lg"></i>
+            </button>
+          </div>
+          <small class="text-muted">Tipp: Auf eine Netzform klicken um sie auszuwählen. Eigene mit <kbd>+</kbd> hinzufügen.</small>
+        </div>
+      </div>
+    </div>
+    <div class="step-nav">
+      <button class="btn btn-secondary" disabled>← Zurück</button>
+      <span class="counter">Schritt 1 von 8</span>
+      <button class="btn btn-primary" onclick="nextStep()">Weiter →</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       STEP 2 – Anlass & Normen
+  ══════════════════════════════════════════════════════════════ -->
+  <div class="step-card" id="step-2">
+    <div class="step-head"><i class="bi bi-check2-square"></i>Anlass der Prüfung &amp; Normen</div>
+    <div class="step-body">
+
+      <div class="sec-label">Anlass der Prüfung</div>
+      <div class="d-flex flex-wrap gap-3 mb-4">
+        <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" id="a_neuanlage"    value="Neuanlage"><label          class="form-check-label" for="a_neuanlage">Neuanlage</label></div>
+        <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" id="a_aenderung"   value="Änderung"><label            class="form-check-label" for="a_aenderung">Änderung</label></div>
+        <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" id="a_sonstiges"   value="Sonstiges"><label           class="form-check-label" for="a_sonstiges">Sonstiges</label></div>
+        <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" id="a_wiederholung" value="Wiederholungsprüfung"><label class="form-check-label" for="a_wiederholung">Wiederholungsprüfung</label></div>
+        <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" id="a_instandsetzung" value="Instandsetzung"><label   class="form-check-label" for="a_instandsetzung">Instandsetzung</label></div>
+      </div>
+
+      <div class="sec-label">Prüfung durchgeführt nach</div>
+      <div class="d-flex flex-wrap gap-2 mb-3" id="norm-list"></div>
+      <div class="input-group input-group-sm" style="max-width:380px">
+        <input type="text" class="form-control" id="norm-input"
+               placeholder="Eigene Norm eingeben (z. B. DIN EN 60204-1) …" maxlength="60"
+               onkeydown="if(event.key==='Enter'){addNorm();event.preventDefault();}">
+        <button class="btn btn-outline-primary" onclick="addNorm()">
+          <i class="bi bi-plus-lg"></i> Norm
+        </button>
+      </div>
+    </div>
+    <div class="step-nav">
+      <button class="btn btn-secondary" onclick="prevStep()">← Zurück</button>
+      <span class="counter">Schritt 2 von 8</span>
+      <button class="btn btn-primary" onclick="nextStep()">Weiter →</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       STEP 3 – Besichtigen
+  ══════════════════════════════════════════════════════════════ -->
+  <div class="step-card" id="step-3">
+    <div class="step-head"><i class="bi bi-eye"></i>Besichtigen – Sichtprüfung</div>
+    <div class="step-body p-0">
+      <p class="px-3 pt-3 text-muted small mb-1">Bitte jeden Prüfpunkt bewerten. Nicht geprüfte Punkte offen lassen.</p>
+      <table class="table table-sm table-bordered table-striped mb-0">
+        <thead>
+          <tr>
+            <th style="width:56%">Prüfpunkt</th>
+            <th class="text-center">i.O.</th>
+            <th class="text-center">n.i.O.</th>
+            <th class="text-center">n. Bestandteil</th>
+          </tr>
+        </thead>
+        <tbody id="bes-body"></tbody>
+      </table>
+    </div>
+    <div class="step-nav">
+      <button class="btn btn-secondary" onclick="prevStep()">← Zurück</button>
+      <span class="counter">Schritt 3 von 8</span>
+      <button class="btn btn-primary" onclick="nextStep()">Weiter →</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       STEP 4 – Erproben
+  ══════════════════════════════════════════════════════════════ -->
+  <div class="step-card" id="step-4">
+    <div class="step-head"><i class="bi bi-toggles"></i>Erproben / Funktionsprüfung</div>
+    <div class="step-body p-0">
+      <p class="px-3 pt-3 text-muted small mb-1">Alle Funktionen der Anlage prüfen und bewerten.</p>
+      <table class="table table-sm table-bordered table-striped mb-0">
+        <thead>
+          <tr>
+            <th style="width:56%">Prüfpunkt</th>
+            <th class="text-center">i.O.</th>
+            <th class="text-center">n.i.O.</th>
+            <th class="text-center">n. Bestandteil</th>
+          </tr>
+        </thead>
+        <tbody id="erp-body"></tbody>
+      </table>
+    </div>
+    <div class="step-nav">
+      <button class="btn btn-secondary" onclick="prevStep()">← Zurück</button>
+      <span class="counter">Schritt 4 von 8</span>
+      <button class="btn btn-primary" onclick="nextStep()">Weiter →</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       STEP 5 – Messgeräte
+  ══════════════════════════════════════════════════════════════ -->
+  <div class="step-card" id="step-5">
+    <div class="step-head"><i class="bi bi-rulers"></i>Verwendete Messgeräte</div>
+    <div class="step-body">
+      <p class="text-muted small mb-3">Bitte alle verwendeten Messgeräte mit Kalibrierungsdatum eintragen.</p>
+      <div class="row g-3" id="mg-container"></div>
+    </div>
+    <div class="step-nav">
+      <button class="btn btn-secondary" onclick="prevStep()">← Zurück</button>
+      <span class="counter">Schritt 5 von 8</span>
+      <button class="btn btn-primary" onclick="nextStep()">Weiter →</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       STEP 6 – Messprotokoll
+  ══════════════════════════════════════════════════════════════ -->
+  <div class="step-card" id="step-6">
+    <div class="step-head"><i class="bi bi-table"></i>Messprotokoll</div>
+    <div class="step-body p-0">
+      <table class="mess-tbl">
+        <!-- Da .mess-tbl table-layout:fixed nutzt, bestimmen einzig die hier fest vergebenen
+             col-Breiten die Spaltenbreiten – die Zellinhalte selbst haben keinen Einfluss mehr
+             darauf. Die letzte Spalte ("Del") ist der Lösch-Button jeder Zeile, siehe addMessRow(). -->
+        <colgroup>
+          <col style="width:58px"><!-- Ziel -->
+          <col style="width:54px"> <!-- Typ -->
+          <col style="width:38px"> <!-- Ltr -->
+          <col style="width:38px"> <!-- mm² -->
+          <col style="width:48px"> <!-- ÜS Art -->
+          <col style="width:40px"> <!-- In -->
+          <col style="width:66px"> <!-- Zi L-N -->
+          <col style="width:66px"> <!-- Zi L-PE -->
+          <col style="width:48px"> <!-- Riso o -->
+          <col style="width:48px"> <!-- Riso m -->
+          <col style="width:48px"> <!-- RCD Art -->
+          <col style="width:42px"> <!-- IDn -->
+          <col style="width:42px"> <!-- Imess -->
+          <col style="width:42px"> <!-- ta -->
+          <col style="width:36px"> <!-- UL -->
+          <col style="width:42px"> <!-- Umess -->
+          <col style="width:28px"> <!-- Del -->
+        </colgroup>
+        <thead>
+          <tr>
+            <th rowspan="2">Stromkreis<br>Zielbezeich.</th>
+            <th colspan="3">Leitung / Kabel</th>
+            <th colspan="4">Überstrom-Schutzeinrichtung</th>
+            <th colspan="2">R<sub>iso</sub> (MΩ)</th>
+            <th colspan="6">Fehlerstrom-Schutz (RCD)</th>
+            <th rowspan="2"></th>
+          </tr>
+          <tr>
+            <th>Typ</th><th>Ltr</th><th>mm²</th>
+            <th>Art</th><th>In<br>(A)</th>
+            <th>Zi/Ik<br>L-N/L-L</th><th>Zs/Ik<br>L-PE</th>
+            <th>ohne<br>Verb.</th><th>mit<br>Verb.</th>
+            <th>In/Art</th><th>IDn<br>(mA)</th><th>Imess<br>(mA)</th>
+            <th>ta<br>(ms)</th><th>UL<br>≤V</th><th>Umess<br>(V)</th>
+          </tr>
+        </thead>
+        <tbody id="mess-body"></tbody>
+      </table>
+      <div class="p-2">
+        <button class="btn btn-primary btn-sm" onclick="addMessRow()">
+          <i class="bi bi-plus-circle me-1"></i>Zeile hinzufügen
+        </button>
+      </div>
+    </div>
+    <div class="step-nav">
+      <button class="btn btn-secondary" onclick="prevStep()">← Zurück</button>
+      <span class="counter">Schritt 6 von 8</span>
+      <button class="btn btn-primary" onclick="nextStep()">Weiter →</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       STEP 7 – Prüfergebnis & Bemerkungen
+  ══════════════════════════════════════════════════════════════ -->
+  <div class="step-card" id="step-7">
+    <div class="step-head"><i class="bi bi-clipboard-check"></i>Prüfergebnis &amp; Bemerkungen</div>
+    <div class="step-body">
+      <div class="sec-label">Prüfergebnis</div>
+      <div class="row g-3 mb-4">
+        <div class="col-md-5">
+          <div class="border rounded p-3 text-center" style="cursor:pointer" onclick="document.getElementById('pe_ok').click()">
+            <input class="form-check-input me-2" type="radio" name="pruefergebnis" id="pe_ok" value="Mangelfrei" checked>
+            <label class="form-check-label fw-bold text-success fs-5" for="pe_ok" style="cursor:pointer">
+              <i class="bi bi-check-circle-fill me-1"></i>Mangelfrei
+            </label>
+          </div>
+        </div>
+        <div class="col-md-7">
+          <div class="border rounded p-3 text-center" style="cursor:pointer" onclick="document.getElementById('pe_mangel').click()">
+            <input class="form-check-input me-2" type="radio" name="pruefergebnis" id="pe_mangel" value="Mängel vorhanden">
+            <label class="form-check-label fw-bold text-danger fs-5" for="pe_mangel" style="cursor:pointer">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i>Mängel vorhanden – siehe Folgeblatt
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="sec-label">Bemerkungen / Mängel</div>
+      <textarea class="form-control" id="bemerkungen" rows="6"
+                placeholder="Mängel, Auffälligkeiten und weitere Bemerkungen hier eintragen …"></textarea>
+    </div>
+    <div class="step-nav">
+      <button class="btn btn-secondary" onclick="prevStep()">← Zurück</button>
+      <span class="counter">Schritt 7 von 8</span>
+      <button class="btn btn-primary" onclick="nextStep()">Weiter →</button>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════════
+       STEP 8 – Unterschrift
+  ══════════════════════════════════════════════════════════════ -->
+  <div class="step-card" id="step-8">
+    <div class="step-head"><i class="bi bi-pen"></i>Ort, Datum &amp; Unterschrift</div>
+    <div class="step-body">
+
+      <div class="row g-3 mb-4">
+        <div class="col-md-4">
+          <label class="fw-sb">Ort</label>
+          <input type="text" class="form-control" id="ort" value="Hamburg">
+        </div>
+        <div class="col-md-4">
+          <label class="fw-sb">Datum</label>
+          <input type="date" class="form-control" id="datum">
+        </div>
+        <div class="col-md-4">
+          <label class="fw-sb">Name Prüfer</label>
+          <select class="form-select" id="pruefer">
+            <option value="">– Prüfer wählen –</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Prüfer Verwaltung -->
+      <div class="border rounded bg-light p-3 mb-4">
+        <div class="small fw-bold text-primary mb-2">
+          <i class="bi bi-people-fill me-1"></i>Prüfer verwalten
+        </div>
+        <div id="pruefer-list" class="mb-2">
+          <p class="text-muted small mb-0">Noch keine Prüfer gespeichert.</p>
+        </div>
+        <div class="input-group input-group-sm" style="max-width:380px">
+          <input type="text" class="form-control" id="pruefer-input"
+                 placeholder="Neuen Prüfer hinzufügen …" maxlength="80"
+                 onkeydown="if(event.key==='Enter'){savePruefer();event.preventDefault();}">
+          <button class="btn btn-primary" id="pruefer-save-btn" onclick="savePruefer()" title="Hinzufügen">
+            <i class="bi bi-plus-lg"></i>
+          </button>
+          <button class="btn btn-secondary" id="pruefer-cancel-btn"
+                  onclick="cancelEditPruefer()" style="display:none" title="Abbrechen">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Unterschrift-Pad -->
+      <label class="fw-sb mb-2">
+        Handunterschrift
+        <small class="text-muted fw-normal">(mit Finger auf Touchscreen oder Maus zeichnen)</small>
+      </label>
+      <div class="row g-3 align-items-start">
+        <div class="col-md-8">
+          <div class="sig-wrap" id="sig-wrap">
+            <canvas id="sig-canvas" height="160"></canvas>
+            <div class="sig-hint"><i class="bi bi-pen me-2"></i>Hier unterschreiben …</div>
+          </div>
+        </div>
+        <div class="col-md-4 d-flex flex-column gap-2 pt-1">
+          <button class="btn btn-outline-secondary w-100" onclick="sigUndo()">
+            <i class="bi bi-arrow-counterclockwise me-1"></i>Rückgängig
+          </button>
+          <button class="btn btn-outline-danger w-100" onclick="sigClear()">
+            <i class="bi bi-trash me-1"></i>Löschen
+          </button>
+          <div id="sig-status" class="small text-muted text-center mt-1"></div>
+        </div>
+      </div>
+    </div>
+    <div class="step-nav">
+      <button class="btn btn-secondary" onclick="prevStep()">← Zurück</button>
+      <span class="counter">Schritt 8 von 8</span>
+      <button class="btn btn-success px-4" onclick="doExport()">
+        <i class="bi bi-file-earmark-pdf me-1"></i>PDF erstellen
+      </button>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"
+        integrity="sha384-dPowQo9uxJU703klzvnG+vzLHQDNmO/zREXw6BhCMupB54CE70wj6SWOGVPySK3s" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfmake@0.2.10/build/pdfmake.min.js"
+        integrity="sha384-vseuUuO/VRMn00lXYd5m/Pk4l/7RjMqhXGf6G0RALy+On0txYb39dQsUQDAd7q5L" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfmake@0.2.10/build/vfs_fonts.js"
+        integrity="sha384-zmD5tDN2awbMigS/yVcxHObSsdXXKh/27Y/bSII38WfNl+D7O/aVCIteAXsLY3p3" crossorigin="anonymous"></script>
+<script>
+'use strict';
+
+// ════════════════════════════════════════════════════════════════
+//  STEPPER
+// ════════════════════════════════════════════════════════════════
+const STEP_LABELS = ['Angaben','Anlass & Normen','Besichtigen','Erproben',
+                     'Messgeräte','Messprotokoll','Ergebnis','Unterschrift'];
+const TOTAL = 8;
+let currentStep = 1;
+
+// Baut die Kreise+Linien-Leiste oben auf Basis von currentStep komplett neu auf.
+// Ich rendere hier bewusst jedes Mal alles neu statt nur Klassen umzuschalten – bei nur
+// 8 Steps ist der Aufwand vernachlässigbar und der Code bleibt so deutlich einfacher
+// (kein Abgleich zwischen altem und neuem Zustand nötig).
+function buildStepper() {
+  document.getElementById('stepper').innerHTML = STEP_LABELS.map((lbl, i) => {
+    const n   = i + 1;
+    // Bereits durchlaufene Steps bekommen die Klasse "done" (Häkchen-Icon + eingefärbte
+    // Linie), der aktuelle Step "active" (hervorgehobener Kreis), der Rest bleibt neutral.
+    const cls = n < currentStep ? 'done' : n === currentStep ? 'active' : '';
+    const ico = n < currentStep ? '<i class="bi bi-check-lg"></i>' : n;
+    // onclick direkt auf den Kreis, damit man per Klick auf die Bubble oben jederzeit
+    // zu jedem Step springen kann – es gibt aktuell keine Pflichtfeld-Validierung, die
+    // das Vor-/Zurückspringen verhindern müsste (siehe nextStep()/prevStep()).
+    return `<div class="step-item ${cls}" id="si-${n}">
+              <div class="step-circle" onclick="showStep(${n})" title="Zu „${lbl}“ springen">${ico}</div>
+              <div class="step-label">${lbl}</div>
+            </div>`;
+  }).join('');
+}
+
+// Wechselt die sichtbare Formularkarte auf Step n. Es liegen immer alle 8 Step-Karten
+// im DOM, nur die aktive wird per Klasse "active" (display:block) sichtbar gemacht –
+// das hält den Formularzustand (Eingaben) über alle Steps hinweg im DOM erhalten,
+// ganz ohne eigenen State-Store.
+function showStep(n) {
+  document.querySelectorAll('.step-card').forEach(c => c.classList.remove('active'));
+  document.getElementById(`step-${n}`).classList.add('active');
+  currentStep = n;
+  buildStepper();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Das Signatur-Canvas kann erst initialisiert werden, wenn es sichtbar ist (sonst hat
+  // es keine echte Breite/Höhe im Layout) – daher lazy erst beim ersten Erreichen von
+  // Step 8, nicht schon beim Seitenaufbau.
+  if (n === 8) initSigPadOnce();
+}
+
+function nextStep() { if (currentStep < TOTAL) showStep(currentStep + 1); }
+function prevStep() { if (currentStep > 1)     showStep(currentStep - 1); }
+
+// ════════════════════════════════════════════════════════════════
+//  STATIC DATA
+// ════════════════════════════════════════════════════════════════
+const BES_ITEMS = [
+  'Auswahl der Betriebsmittel','Trenn- und Schaltgeräte','Brandschottungen',
+  'Gebäudesystemtechnik','Kabel, Leitungen, Stromschienen',
+  'Kennzeichnung Stromkreis, BMK','Kennzeichnung N- und PE-Leiter',
+  'Leiterverbindungen','Schutz u. Überwachungseinrichtungen',
+  'Schutz gegen direktes Berühren','Zugänglichkeit',
+  'Schutzpotentialausgleich','Zus. Örtlich Potentialausgleich','Dokumentation'
+];
+const ERP_ITEMS = [
+  'Funktionsprüfung der Anlage','Trenn- und Schaltgeräte',
+  'Funktion Überwachungseinrichtungen','FI-Schutzschalter',
+  'Kabel, Leitungen, Stromschienen','Rechtsdrehfeld Anlage','Drehrichtung Motoren'
+];
+const DEFAULT_NORMS = [
+  'DIN VDE 0100-600','BetrSichV','DIN VDE 0701-0702',
+  'TRBS','DIN VDE 0165','DGUV 3','DIN VDE 0105'
+];
+const DEFAULT_NF = ['TN','TT','IT'];
+
+// ════════════════════════════════════════════════════════════════
+//  NETZFORM
+//  Die Liste der verfügbaren Netzformen (Tags) und die aktuell ausgewählte werden in
+//  localStorage gehalten statt nur im Formular-DOM – dadurch bleiben einmal hinzugefügte
+//  eigene Netzformen und die zuletzt gewählte Option auch nach einem Neuladen der Seite
+//  bzw. in einem neuen Formular ("Neues Formular"-Button) erhalten.
+// ════════════════════════════════════════════════════════════════
+const NF_KEY = 'pruefprot_netzformen';
+const NF_SEL = 'pruefprot_netzform_sel';
+
+// Fällt beim ersten Aufruf (bzw. bei kaputtem localStorage-Inhalt) auf DEFAULT_NF zurück.
+// Wichtig: [...DEFAULT_NF] statt DEFAULT_NF direkt, damit spätere push()/splice()-Aufrufe
+// auf der zurückgegebenen Liste nicht versehentlich die globale Konstante mutieren.
+function getNFList() {
+  try { return JSON.parse(localStorage.getItem(NF_KEY)) || [...DEFAULT_NF]; }
+  catch(e) { return [...DEFAULT_NF]; }
+}
+function saveNFList(l) { localStorage.setItem(NF_KEY, JSON.stringify(l)); }
+function getNFSelected() { return localStorage.getItem(NF_SEL) || 'TN'; }
+function setNFSelected(v) { localStorage.setItem(NF_SEL, v); }
+
+// Zeichnet die Netzform-Tags neu. "selected" ist optional – wird es nicht mitgegeben,
+// nehme ich die zuletzt gespeicherte Auswahl aus localStorage (z.B. beim ersten Aufbau
+// der Seite), ansonsten die explizit übergebene (z.B. direkt nach dem Anklicken eines Tags,
+// noch bevor der localStorage-Schreibvorgang "sicher" gelesen werden könnte).
+// Baut die Tags per createElement/textContent/addEventListener statt per innerHTML-String
+// aus nf zusammenzusetzen. Wichtig: esc() escaped zwar & < > " für den HTML-Attribut-Kontext,
+// aber KEINE einfachen Anführungszeichen – ein nf-Wert wie x'); alert(1); // hätte in einem
+// onclick="selectNF('${esc(nf)}')"-String ausbrechen und beliebigen Code ausführen können
+// (dieser Weg stand offen, solange es noch einen JSON-Import mit ungeprüftem
+// netzformen_custom-Eintrag gab – der Import ist inzwischen entfernt, aber textContent/
+// addEventListener sind trotzdem die robustere, generell XSS-sichere Bauweise: nf wird nie
+// als HTML- oder JS-Quelltext geparst, sondern immer nur als reiner Text-/Closure-Wert).
+function renderNF(selected) {
+  const list = getNFList();
+  const cur  = selected !== undefined ? selected : getNFSelected();
+  const box  = document.getElementById('nf-tags');
+  box.innerHTML = '';
+  list.forEach((nf, i) => {
+    const tag = document.createElement('span');
+    tag.className = 'nf-tag' + (nf === cur ? ' active' : '');
+    const isDefault = DEFAULT_NF.includes(nf);
+
+    const label = document.createElement('span');
+    label.textContent = nf;
+    label.addEventListener('click', () => selectNF(nf));
+    tag.appendChild(label);
+
+    if (!isDefault) {
+      const del = document.createElement('span');
+      del.className = 'del';
+      del.title = 'Entfernen';
+      del.textContent = '✕';
+      del.addEventListener('click', () => deleteNF(i));
+      tag.appendChild(del);
+    }
+    box.appendChild(tag);
+  });
+}
+
+function selectNF(v) { setNFSelected(v); renderNF(v); }
+
+// Nimmt den Wert aus dem Freitext-Eingabefeld entgegen, normalisiert ihn auf Großbuchstaben
+// (Netzformen wie "TN-C-S" werden konventionell komplett groß geschrieben) und hängt ihn nur
+// an, wenn er noch nicht existiert – dadurch entstehen keine doppelten Tags bei mehrfachem
+// Eintippen derselben Netzform.
+function addNetzform() {
+  const inp = document.getElementById('nf-input');
+  const val = inp.value.trim().toUpperCase();
+  if (!val) return;
+  const list = getNFList();
+  if (!list.includes(val)) { list.push(val); saveNFList(list); }
+  inp.value = '';
+  renderNF(val);
+  selectNF(val);
+}
+
+// Die drei Standard-Netzformen (TN/TT/IT) lassen sich nicht löschen – sie sind über
+// DEFAULT_NF fest hinterlegt, damit immer eine sinnvolle Grundauswahl vorhanden bleibt.
+// Wird die gerade ausgewählte Netzform gelöscht, springe ich automatisch auf die erste
+// verbleibende (oder leer, falls gar keine mehr übrig ist), statt eine ungültige Auswahl
+// stehen zu lassen.
+function deleteNF(i) {
+  const list = getNFList();
+  const name = list[i];
+  if (DEFAULT_NF.includes(name)) return;
+  list.splice(i, 1);
+  saveNFList(list);
+  const cur = getNFSelected();
+  renderNF(cur === name ? (list[0] || '') : cur);
+}
+
+// Einfaches HTML-Escaping für alle Stellen, an denen Nutzereingaben (Netzformen, Normen,
+// Prüfpunkte etc.) direkt per innerHTML in den DOM eingefügt werden – schützt vor
+// versehentlich eingegebenem HTML/Markup, das sonst das Layout zerschießen oder (im
+// schlimmsten Fall) für XSS missbraucht werden könnte.
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ════════════════════════════════════════════════════════════════
+//  NORMEN
+//  Analog zur Netzform-Verwaltung oben: DEFAULT_NORMS sind die sieben fest hinterlegten
+//  Standardnormen (immer vorhanden, nicht löschbar), zusätzlich können projektspezifisch
+//  eigene Normen ergänzt werden, die in localStorage persistiert werden.
+// ════════════════════════════════════════════════════════════════
+const NORM_CUSTOM_KEY = 'pruefprot_normen_custom';
+
+function getCustomNorms() {
+  try { return JSON.parse(localStorage.getItem(NORM_CUSTOM_KEY)) || []; }
+  catch(e) { return []; }
+}
+function saveCustomNorms(l) { localStorage.setItem(NORM_CUSTOM_KEY, JSON.stringify(l)); }
+
+// checkedList: welche Normen aktuell angehakt sein sollen (z.B. beim Wiederherstellen
+// eines vorher angehakten Zustands nach dem Hinzufügen/Löschen einer eigenen Norm –
+// sonst würden beim Neuaufbau der Checkbox-Liste alle Häkchen verloren gehen).
+function renderNorms(checkedList) {
+  const box    = document.getElementById('norm-list');
+  const custom = getCustomNorms();
+  const allNorms = [...DEFAULT_NORMS, ...custom];
+  box.innerHTML = '';
+  allNorms.forEach((norm, i) => {
+    const isCustom = i >= DEFAULT_NORMS.length;
+    const checked  = checkedList ? checkedList.includes(norm) : false;
+    const wrap = document.createElement('span');
+    wrap.className = 'norm-check' + (isCustom ? ' custom' : '');
+    wrap.innerHTML = `<input class="form-check-input norm-cb" type="checkbox" id="norm_${i}"
+                             value="${esc(norm)}" ${checked ? 'checked' : ''}>
+                      <label for="norm_${i}">${esc(norm)}</label>`
+      + (isCustom ? `<button class="norm-del" onclick="deleteNorm(${i - DEFAULT_NORMS.length})" title="Entfernen">✕</button>` : '');
+    box.appendChild(wrap);
+  });
+}
+
+// Fügt eine neue eigene Norm hinzu (falls noch nicht vorhanden), baut die Checkbox-Liste
+// neu auf und hakt danach gezielt die neue Norm an – der Nutzer will eine gerade
+// eingetippte Norm ja fast immer sofort auch für dieses Protokoll aktivieren, nicht nur
+// zur Liste hinzufügen.
+function addNorm() {
+  const inp = document.getElementById('norm-input');
+  const val = inp.value.trim();
+  if (!val) return;
+  const custom = getCustomNorms();
+  if (![...DEFAULT_NORMS, ...custom].includes(val)) {
+    custom.push(val);
+    saveCustomNorms(custom);
+  }
+  inp.value = '';
+  renderNorms(getCheckedNorms());
+  // check the new one
+  const all = document.querySelectorAll('.norm-cb');
+  all.forEach(cb => { if (cb.value === val) cb.checked = true; });
+}
+
+// ci = Index innerhalb der custom-Liste (nicht innerhalb allNorms!), siehe renderNorms()
+// wo der Lösch-Button mit "i - DEFAULT_NORMS.length" genau diesen Offset herausrechnet.
+function deleteNorm(ci) {
+  const custom = getCustomNorms();
+  custom.splice(ci, 1);
+  saveCustomNorms(custom);
+  renderNorms(getCheckedNorms());
+}
+
+function getCheckedNorms() {
+  return Array.from(document.querySelectorAll('.norm-cb:checked')).map(cb => cb.value);
+}
+
+// ════════════════════════════════════════════════════════════════
+//  CHECK TABLES (Besichtigen / Erproben)
+//  Besichtigen und Erproben haben identischen Tabellenaufbau (Prüfpunkt + 3 Radiobuttons
+//  i.O./n.i.O./n.B.), nur mit unterschiedlichen Prüfpunkt-Listen (BES_ITEMS/ERP_ITEMS) –
+//  daher eine gemeinsame Aufbaufunktion statt zweier fast identischer Kopien.
+// ════════════════════════════════════════════════════════════════
+// prefix unterscheidet die radio-name-Gruppen der beiden Tabellen (z.B. "bes_3" vs.
+// "erp_3"), damit ein Klick in der Besichtigen-Tabelle nicht versehentlich einen
+// Radiobutton in der gleich indizierten Erproben-Zeile mit demselben name beeinflusst.
+
+// Setzt einen Radiobutton, der beim Antippen bereits ausgewählt war, wieder zurück.
+// data-wasChecked wird von onpointerdown VOR dem eigentlichen Klick gesetzt (zu diesem
+// Zeitpunkt hat der Browser den checked-Status noch nicht verändert) – im nachfolgenden
+// click-Handler steht der Browser-Wert dann schon auf true, wir kippen ihn hier zurück
+// auf false, falls er es vorher schon war. So reicht ein einzelner Tipp/Klick zum
+// Bestätigen UND zum Entfernen, ganz ohne Doppelklick/Doppeltipp.
+function toggleCheckCell(el) {
+  if (el.dataset.wasChecked === '1') el.checked = false;
+}
+
+function buildCheckTable(items, tbodyId, prefix) {
+  const tb = document.getElementById(tbodyId);
+  items.forEach((item, i) => {
+    const tr = document.createElement('tr');
+    // Native Radiobuttons lassen sich per Klick nicht wieder abwählen (immer genau einer
+    // der drei bleibt gesetzt). Ein Doppelklick zum Zurücksetzen ist auf dem iPad unpraktisch
+    // (Doppeltipp wird von Touch-Browsern oft nicht sauber erkannt bzw. mit Zoom verwechselt).
+    // Deshalb per onpointerdown+toggleCheckCell() ein Einzeltipp-Verhalten nachgebaut: erster
+    // Tipp wählt aus (Standardverhalten), ein weiterer Tipp auf denselben, bereits ausgewählten
+    // Radiobutton entfernt die Auswahl wieder. pointerdown/click funktionieren auf iPad wie
+    // auf Desktop identisch, kein separates Touch-Handling nötig.
+    tr.innerHTML = `<td>${esc(item)}</td>`
+      + ['i.O.','n.i.O.','n.B.'].map(v =>
+          `<td class="check-cell"><input class="form-check-input" type="radio" name="${prefix}_${i}" value="${v}"
+             onpointerdown="this.dataset.wasChecked=this.checked?'1':'0'"
+             onclick="toggleCheckCell(this)"
+             title="Erneut antippen zum Zurücksetzen"></td>`
+        ).join('');
+    tb.appendChild(tr);
+  });
+}
+
+// ════════════════════════════════════════════════════════════════
+//  MESSGERÄTE
+// ════════════════════════════════════════════════════════════════
+// Baut fest 3 Messgeräte-Karten auf (mehr sind laut Formularvorgabe nicht vorgesehen,
+// analog zu den 3 Messgeräte-Kärtchen im PDF, siehe mgSection in buildPDF()).
+function buildMessgeraete() {
+  const c = document.getElementById('mg-container');
+  for (let i = 1; i <= 3; i++) {
+    c.innerHTML += `
+      <div class="col-md-4">
+        <div class="border rounded p-3 bg-light h-100">
+          <div class="fw-bold text-primary mb-3"><i class="bi bi-device-hdd me-1"></i>Messgerät ${i}</div>
+          <div class="mb-2"><label class="fw-sb">Fabrikat</label><input type="text" class="form-control" id="mg${i}_fab"></div>
+          <div class="mb-2"><label class="fw-sb">Typ</label><input type="text" class="form-control" id="mg${i}_typ"></div>
+          <div class="mb-2"><label class="fw-sb">SN Nr.</label><input type="text" class="form-control" id="mg${i}_sn"></div>
+          <div><label class="fw-sb">Letzte Kalibrierung</label><input type="date" class="form-control" id="mg${i}_kalib"></div>
+        </div>
+      </div>`;
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  MESSPROTOKOLL
+// ════════════════════════════════════════════════════════════════
+// rowIdx zählt nur hoch, wird nie wiederverwendet – auch nach dem Löschen einer Zeile
+// bekommt die nächste neue Zeile eine neue, noch nie vergebene Nummer. Das verhindert
+// id-Kollisionen zwischen input-Feldern verschiedener (auch schon gelöschter) Zeilen.
+let rowIdx = 0;
+// data-Parameter ist aktuell immer undefined (der frühere JSON-Import, der hier vorbefüllte
+// Zeilen übergeben hat, wurde entfernt) – beim Hinzufügen über den Button entsteht dadurch
+// immer eine leere Zeile. Der Parameter bleibt bewusst stehen, falls addMessRow() später
+// wieder aus einer anderen Quelle vorbefüllte Zeilen bekommen soll.
+function addMessRow(data) {
+  rowIdx++;
+  const id = rowIdx;
+  const v  = key => esc(data ? (data[key] || '') : '');
+  // alle Felder als type="text", autocomplete aus — kein Browser-Dropdown, kein Spinner
+  const c  = (key, numeric = false) =>
+    `<td><input type="text" id="mr${id}_${key}" value="${v(key)}"
+               autocomplete="off" spellcheck="false"
+               ${numeric ? 'inputmode="decimal"' : ''}
+               class="mess-inp-cell"></td>`;
+
+  const tr = document.createElement('tr');
+  tr.id = `mr-${id}`;
+  tr.innerHTML =
+    c('ziel') + c('ltyp') + c('leiter',true) + c('qs') +
+    c('usart') + c('usin',true) + c('zi_ln') + c('zi_lpe') +
+    c('riso_o',true) + c('riso_m',true) + c('rcd_art') +
+    c('idn',true) + c('imess',true) + c('ta',true) +
+    c('ul',true) + c('umess',true) +
+    `<td style="text-align:center">
+       <button style="background:none;border:none;color:#dc3545;cursor:pointer;font-size:.85rem"
+               onclick="document.getElementById('mr-${id}').remove()" title="Löschen">
+         <i class="bi bi-trash"></i></button></td>`;
+  document.getElementById('mess-body').appendChild(tr);
+  // Fokus auf erstes Feld der neuen Zeile setzen
+  if (!data) setTimeout(() => document.getElementById(`mr${id}_ziel`)?.focus(), 30);
+}
+
+// Enter-Taste in Messprotokoll → nächste Zelle rechts
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 'Enter') return;
+  const active = document.activeElement;
+  if (!active || !active.classList.contains('mess-inp-cell')) return;
+  e.preventDefault();
+
+  // Alle sichtbaren Eingabefelder in der Tabelle in DOM-Reihenfolge
+  const inputs = Array.from(document.querySelectorAll('#mess-body .mess-inp-cell'));
+  const idx = inputs.indexOf(active);
+  if (idx === -1) return;
+
+  if (idx < inputs.length - 1) {
+    // Nächstes Feld rechts (oder Zeilenanfang der nächsten Zeile)
+    inputs[idx + 1].focus();
+    inputs[idx + 1].select();
+  } else {
+    // Letzte Zelle der letzten Zeile → neue Zeile anhängen
+    addMessRow();
+  }
+});
+
+// ════════════════════════════════════════════════════════════════
+//  PRÜFER
+//  Prüfer-Namen werden genau wie Netzformen/Normen in localStorage gepflegt, damit man
+//  sie nicht bei jedem neuen Protokoll erneut eintippen muss – das Dropdown in Step 8
+//  greift auf dieselbe Liste zurück wie die Verwaltungs-Box darunter.
+// ════════════════════════════════════════════════════════════════
+const PR_KEY = 'pruefprot_pruefer';
+// null = "neuer Prüfer wird angelegt", sonst Index des gerade per editPruefer() zur
+// Umbenennung geöffneten Eintrags – steuert, ob savePruefer() einen neuen Eintrag
+// anlegt oder einen bestehenden umbenennt.
+let prEditIdx = null;
+
+function getPrueferList() {
+  try { return JSON.parse(localStorage.getItem(PR_KEY)) || []; }
+  catch(e) { return []; }
+}
+function savePrueferList(l) { localStorage.setItem(PR_KEY, JSON.stringify(l)); }
+
+function renderPrueferAll(selectName) {
+  const list = getPrueferList();
+  const cur  = selectName !== undefined ? selectName : document.getElementById('pruefer').value;
+
+  // Dropdown
+  const sel = document.getElementById('pruefer');
+  sel.innerHTML = '<option value="">– Prüfer wählen –</option>';
+  list.forEach(name => {
+    const o = document.createElement('option');
+    o.value = name; o.textContent = name;
+    if (name === cur) o.selected = true;
+    sel.appendChild(o);
+  });
+
+  // Liste
+  const box = document.getElementById('pruefer-list');
+  if (!box) return;
+  box.innerHTML = '';
+  if (list.length === 0) {
+    box.innerHTML = '<p class="text-muted small mb-0">Noch keine Prüfer gespeichert.</p>';
+    return;
+  }
+  list.forEach((name, i) => {
+    const row = document.createElement('div');
+    row.className = 'pruefer-row';
+    row.innerHTML = `<span class="small fw-semibold text-truncate me-2" style="max-width:230px">${esc(name)}</span>
+      <span class="d-flex gap-1">
+        <button class="btn btn-outline-secondary btn-sm px-2 py-0" title="Umbenennen" onclick="editPruefer(${i})">
+          <i class="bi bi-pencil"></i></button>
+        <button class="btn btn-outline-danger btn-sm px-2 py-0" title="Löschen" onclick="deletePruefer(${i})">
+          <i class="bi bi-trash"></i></button>
+      </span>`;
+    box.appendChild(row);
+  });
+}
+
+function savePruefer() {
+  const inp  = document.getElementById('pruefer-input');
+  const name = inp.value.trim();
+  if (!name) { inp.focus(); return; }
+  const list = getPrueferList();
+  let selected;
+  if (prEditIdx === null) {
+    if (!list.includes(name)) list.push(name);
+    selected = name;
+  } else {
+    const old = list[prEditIdx];
+    list[prEditIdx] = name;
+    selected = document.getElementById('pruefer').value === old ? name : document.getElementById('pruefer').value;
+    prEditIdx = null;
+    document.getElementById('pruefer-save-btn').innerHTML   = '<i class="bi bi-plus-lg"></i>';
+    document.getElementById('pruefer-cancel-btn').style.display = 'none';
+    inp.placeholder = 'Neuen Prüfer hinzufügen …';
+  }
+  savePrueferList(list);
+  inp.value = '';
+  renderPrueferAll(selected);
+}
+
+function editPruefer(i) {
+  const list = getPrueferList();
+  prEditIdx  = i;
+  const inp  = document.getElementById('pruefer-input');
+  inp.value  = list[i]; inp.placeholder = 'Namen ändern …'; inp.focus();
+  document.getElementById('pruefer-save-btn').innerHTML       = '<i class="bi bi-check-lg"></i>';
+  document.getElementById('pruefer-cancel-btn').style.display = 'inline-flex';
+}
+
+function cancelEditPruefer() {
+  prEditIdx = null;
+  document.getElementById('pruefer-input').value              = '';
+  document.getElementById('pruefer-input').placeholder        = 'Neuen Prüfer hinzufügen …';
+  document.getElementById('pruefer-save-btn').innerHTML       = '<i class="bi bi-plus-lg"></i>';
+  document.getElementById('pruefer-cancel-btn').style.display = 'none';
+}
+
+function deletePruefer(i) {
+  const list = getPrueferList();
+  const name = list[i];
+  if (!confirm(`"${name}" wirklich löschen?`)) return;
+  list.splice(i, 1);
+  savePrueferList(list);
+  const cur = document.getElementById('pruefer').value;
+  renderPrueferAll(cur === name ? '' : cur);
+}
+
+// ════════════════════════════════════════════════════════════════
+//  SIGNATURE PAD
+//  Nutzt die signature_pad-Bibliothek statt eigenem Canvas-Handling, weil sie sich schon
+//  um Touch/Maus/Pen-Events, geglättete Striche und variable Strichbreite kümmert – das
+//  selbst zu bauen wäre reine Fleißarbeit gewesen.
+// ════════════════════════════════════════════════════════════════
+let sigPad = null;
+
+const SIG_KEY = 'pruefprot_sig_tab'; // sessionStorage → pro Tab isoliert
+
+// Wird lazy erst beim ersten Erreichen von Step 8 aufgerufen (siehe showStep()), weil das
+// Canvas erst dann eine korrekte Größe im Layout hat. Das "Once" im Namen ist wörtlich
+// gemeint: sigPad wird nur einmal angelegt, wiederholte Aufrufe (z.B. bei jedem erneuten
+// Wechsel zu Step 8) brechen sofort ab, damit vorhandene Striche nicht verloren gehen.
+function initSigPadOnce() {
+  if (sigPad) return;
+  const canvas = document.getElementById('sig-canvas');
+  const wrap   = document.getElementById('sig-wrap');
+  // Auf hochauflösenden Displays (devicePixelRatio > 1) wird das Canvas in echten Pixeln
+  // größer angelegt als es CSS-seitig dargestellt wird, und der Zeichenkontext entsprechend
+  // hochskaliert – ohne das würde die Unterschrift auf Retina-/4K-Displays unscharf/verpixelt
+  // aussehen, weil sonst 1 CSS-Pixel nur 1 Canvas-Pixel entspräche.
+  const ratio  = Math.max(window.devicePixelRatio || 1, 1);
+  const rect   = canvas.getBoundingClientRect();
+  canvas.width  = (rect.width  || 600) * ratio;
+  canvas.height = (rect.height || 160) * ratio;
+  canvas.getContext('2d').scale(ratio, ratio);
+  sigPad = new SignaturePad(canvas, { minWidth:1.5, maxWidth:3.5, penColor:'#1a3a5c' });
+
+  sigPad.addEventListener('beginStroke', () => wrap.classList.add('signed'));
+
+  // Nach jedem Strich automatisch in sessionStorage sichern (pro Tab)
+  sigPad.addEventListener('endStroke', () => {
+    if (!sigPad.isEmpty()) {
+      sessionStorage.setItem(SIG_KEY, sigPad.toDataURL('image/png'));
+    }
+  });
+
+  // Gespeicherte Unterschrift wiederherstellen (nur dieser Tab)
+  const saved = sessionStorage.getItem(SIG_KEY);
+  if (saved) {
+    sigPad.fromDataURL(saved);
+    wrap.classList.add('signed');
+  }
+
+  // Wird das Fenster/die Karte in der Größe geändert (z.B. Rotation auf Tablet, DevTools
+  // auf/zu), muss das Canvas neu skaliert werden – dabei würde ein einfaches Neusetzen
+  // von width/height den bisherigen Zeicheninhalt löschen. Deshalb sichere ich vorher die
+  // Striche als Vektordaten (toData(), nicht als Pixelbild!) und zeichne sie danach auf
+  // dem neu dimensionierten Canvas erneut nach (fromData()) – so bleibt die Unterschrift
+  // in voller Auflösung erhalten statt nur hochskaliert und damit unscharf zu werden.
+  window.addEventListener('resize', () => {
+    if (!sigPad) return;
+    const data = sigPad.toData();
+    const r2   = Math.max(window.devicePixelRatio || 1, 1);
+    const rc   = canvas.getBoundingClientRect();
+    canvas.width  = rc.width  * r2;
+    canvas.height = rc.height * r2;
+    canvas.getContext('2d').scale(r2, r2);
+    sigPad.fromData(data);
+  });
+}
+
+function sigClear() {
+  if (sigPad) sigPad.clear();
+  sessionStorage.removeItem(SIG_KEY);
+  document.getElementById('sig-wrap').classList.remove('signed');
+  document.getElementById('sig-status').textContent = '';
+}
+
+// Entfernt nur den letzten gezeichneten Strich (nicht die ganze Unterschrift) – toData()
+// liefert die Striche als Array, pop() nimmt den letzten raus, fromData() zeichnet den Rest
+// neu. Deutlich nutzerfreundlicher als "Löschen" bei einem einzelnen Ausrutscher.
+function sigUndo() {
+  if (!sigPad) return;
+  const data = sigPad.toData();
+  if (data.length > 0) {
+    data.pop(); sigPad.fromData(data);
+    if (data.length === 0) document.getElementById('sig-wrap').classList.remove('signed');
+  }
+}
+
+// Liefert die Unterschrift als PNG-Data-URL für collectData()/buildPDF(). Bevorzugt wird
+// das lebende sigPad-Objekt (falls Step 8 schon besucht wurde); ist das Pad noch gar nicht
+// initialisiert (Nutzer war noch nie auf Step 8, z.B. beim direkten Export aus einem
+// früheren Step), greife ich ersatzweise auf die zuletzt in sessionStorage gesicherte
+// Version zurück, damit eine früher in diesem Tab gezeichnete Unterschrift nicht verloren geht.
+function getSigDataURL() {
+  if (sigPad && !sigPad.isEmpty()) return sigPad.toDataURL('image/png');
+  return sessionStorage.getItem(SIG_KEY) || '';
+}
+
+// ════════════════════════════════════════════════════════════════
+//  COLLECT / FILL
+//  Kurze Getter/Setter-Shortcuts, weil im ganzen Formular ständig nur der reine Wert
+//  eines Inputs per id gebraucht wird – g()/s() sparen das wiederholte
+//  "document.getElementById(...).value" an zig Stellen in collectData().
+// ════════════════════════════════════════════════════════════════
+function g(id)      { return document.getElementById(id)?.value || ''; }
+function s(id, val) { const el = document.getElementById(id); if (el) el.value = val || ''; }
+
+// Liest den kompletten aktuellen Formularzustand aus dem DOM aus und baut daraus ein
+// einziges Datenobjekt – genau dieses Objekt ist die "Quelle der Wahrheit", die an
+// buildPDF() für den PDF-Export weitergereicht wird.
+function collectData() {
+  const anlass = ['a_neuanlage','a_aenderung','a_sonstiges','a_wiederholung','a_instandsetzung']
+                   .filter(id => document.getElementById(id)?.checked)
+                   .map(id => document.getElementById(id).value);
+
+  const normen = getCheckedNorms();
+
+  const besichtigen = BES_ITEMS.map((punkt, i) => ({
+    punkt, wert: document.querySelector(`input[name="bes_${i}"]:checked`)?.value || ''
+  }));
+
+  const erproben = ERP_ITEMS.map((punkt, i) => ({
+    punkt, wert: document.querySelector(`input[name="erp_${i}"]:checked`)?.value || ''
+  }));
+
+  const messgeraete = [1,2,3].map(i => ({
+    fabrikat: g(`mg${i}_fab`), typ: g(`mg${i}_typ`),
+    sn: g(`mg${i}_sn`), kalib: g(`mg${i}_kalib`)
+  }));
+
+  const messprotokoll = Array.from(document.querySelectorAll('#mess-body tr')).map(card => {
+    const id   = card.id.replace('mr-','');
+    const keys = ['ziel','ltyp','leiter','qs','usart','usin','zi_ln','zi_lpe',
+                  'riso_o','riso_m','rcd_art','idn','imess','ta','ul','umess'];
+    const obj  = {};
+    keys.forEach(k => { obj[k] = g(`mr${id}_${k}`); });
+    return obj;
+  });
+
+  return {
+    meta: { erstellt: new Date().toISOString(), version: '2.0' },
+    kopfdaten: {
+      kunde: g('kunde'), station: g('station'), projektnummer: g('projektnummer'),
+      stromverteilernummer: g('stromverteilernummer'), netzspannung: g('netzspannung'),
+      frequenz: g('frequenz'),
+      spannungsart: document.querySelector('input[name="spannungsart"]:checked')?.value || 'AC',
+      netzform: getNFSelected()
+    },
+    anlass, normen,
+    normen_custom: getCustomNorms(),
+    netzformen_custom: getNFList().filter(n => !DEFAULT_NF.includes(n)),
+    besichtigen, erproben, messgeraete, messprotokoll,
+    pruefergebnis: document.querySelector('input[name="pruefergebnis"]:checked')?.value || '',
+    bemerkungen: g('bemerkungen'),
+    unterschrift: {
+      ort: g('ort'), datum: g('datum'),
+      pruefer: g('pruefer'),
+      signatur: getSigDataURL()
+    }
+  };
+}
+
+// Logo wird beim Export asynchron per Fetch geladen und als Base64-Data-URL zwischengespeichert,
+// damit es bei mehreren Exporten in derselben Sitzung nicht jedes Mal erneut nachgeladen
+// werden muss. pdfmake kann Bilder nur als Data-URL/Base64 einbetten, kein direktes
+// Datei-<img src="...">-Referenzieren wie im HTML – daher der Umweg über fetch+btoa.
+// Schlägt das Laden fehl (z.B. Datei fehlt), bleibt _logoB64 null und buildPDF() greift
+// automatisch auf den Firmennamen als Text-Fallback zurück (siehe titleRight weiter unten).
+let _logoB64 = null;
+async function getLogoB64() {
+  if (_logoB64) return _logoB64;
+  try {
+    const r   = await fetch('mesa_logo.jpg');
+    const buf = await r.arrayBuffer();
+    const b64 = btoa(String.fromCharCode(...new Uint8Array(buf)));
+    _logoB64  = 'data:image/jpeg;base64,' + b64;
+  } catch(e) { _logoB64 = null; }
+  return _logoB64;
+}
+
+// ── pdfmake PDF erstellen ────────────────────────────────────────
+// Erzeugt das docDefinition-Objekt für pdfmake – das ist die PDF-Variante, die der Nutzer
+// direkt per Klick auf "PDF erstellen" (doExport()) sofort im Browser herunterlädt, ganz
+// ohne Server/Backend. Inhaltlich identisch zur gleichnamigen Funktion in
+// web/pdf_vorschau.html (dort mit Musterdaten für die reine Layout-Vorschau) – Änderungen
+// an der einen Stelle bitte auch in der anderen nachziehen, es gibt hier keine gemeinsame
+// Codebasis/Include-Mechanik zwischen den beiden HTML-Dateien.
+// Wichtig: buildPDF() wird pro Export genau einmal aufgerufen und das Ergebnis direkt per
+// .download() gerendert (kein vorheriges getDataUrl()-Rendering wie in pdf_vorschau.html) –
+// pdfmake mutiert nämlich beim Rendern interne Layout-Daten im übergebenen docDefinition-
+// Objekt, was bei einer zweiten Wiederverwendung desselben Objekts zu einem verfälschten
+// Layout führen würde (siehe Bugfix-Historie zu pdf_vorschau.html). Hier ist also jeder
+// Aufruf automatisch "frisch" und damit unproblematisch.
+function buildPDF(data, logoB64) {
+  const kd = data.kopfdaten     || {};
+  const an = data.anlass        || [];
+  const no = data.normen        || [];
+  const be = data.besichtigen   || [];
+  const er = data.erproben      || [];
+  const mg = data.messgeraete   || [];
+  const mp = data.messprotokoll || [];
+  const u  = data.unterschrift  || {};
+  const pg = data.pruefergebnis || '';
+  const C  = '#1a3a5c';
+  const BG = '#dce8f5';
+  const LN = '#c8d8ea';
+
+  // Zeichnet ein Kontrollkästchen direkt per Canvas-API von pdfmake. Ich verwende Canvas
+  // statt Unicode-Zeichen, weil □/☒ und ähnliche Symbole in pdfmakes eingebettetem
+  // Roboto-Font nicht vorhanden sind und unsichtbar gerendert werden würden.
+  // v=true → Kästchen mit Kreuz (angekreuzt), v=false → leeres Kästchen mit Rahmen.
+  function cbBox(v) {
+    const sz = 8;
+    const items = [{ type:'rect', x:0.5, y:0.5, w:sz, h:sz, lineWidth:1, lineColor:'#333' }];
+    if (v) {
+      items.push({ type:'line', x1:2, y1:2, x2:sz-1, y2:sz-1, lineWidth:1.8, lineColor:'#000' });
+      items.push({ type:'line', x1:sz-1, y1:2, x2:2, y2:sz-1, lineWidth:1.8, lineColor:'#000' });
+    }
+    return { canvas:items, width:sz+2, height:sz+2 };
+  }
+
+  // Standard-Tabellenlayout für alle Tabellen ohne Kästchenspalten (Stammdaten,
+  // Messgeräte, Prüfergebnis, Bemerkungen) – dünne, helle Linien, kompaktes Padding.
+  const lineLayout = {
+    hLineWidth:(i,n)=>(i===0||i===n.table.body.length)?0.8:0.4,
+    vLineWidth:()=>0.4,
+    hLineColor:()=>LN, vLineColor:()=>LN,
+    paddingTop:()=>1.5, paddingBottom:()=>1.5, paddingLeft:()=>3, paddingRight:()=>3
+  };
+  // Für Besichtigen-/Erproben-Tabellen mit Kästchenspalten: minimal knapperes vertikales
+  // Padding, damit die vielen Prüfpunkt-Zeilen möglichst kompakt auf eine Seite passen.
+  const checkLayout = {
+    hLineWidth:(i,n)=>(i===0||i===n.table.body.length)?0.8:0.4,
+    vLineWidth:()=>0.4,
+    hLineColor:()=>LN, vLineColor:()=>LN,
+    paddingTop:()=>1.0, paddingBottom:()=>1.0, paddingLeft:()=>3, paddingRight:()=>3
+  };
+
+  // Erzeugt einen blau gefüllten Balken als Trennüberschrift zwischen den Abschnitten.
+  // keepWithNextN:1 stellt sicher, dass der Titel nie allein am Seitenende steht, sondern
+  // immer zusammen mit mindestens dem ersten Element danach auf die nächste Seite rutscht.
+  function secHead(title) {
+    return { table:{ widths:['*'], body:[[{ text:title, bold:true, fontSize:8.5, color:'#fff', fillColor:C, margin:[4,3,4,3] }]] },
+      layout:'noBorders', margin:[0,6,0,2], keepWithNextN:1 };
+  }
+
+  const titleRight = logoB64
+    ? { image:logoB64, width:76, alignment:'right' }
+    : { text:'MESA\nMember of\nFRIEDRICH VORWERK GROUP', fontSize:7, alignment:'right', color:C, bold:true };
+  const titleRow = {
+    columns:[
+      { stack:[
+          { text:'Prüfprotokoll', bold:true, fontSize:15, color:C },
+          { text:'Über- und Fehlerstrom-Schutzeinrichtungen', bold:true, fontSize:9, color:C, margin:[0,2,0,0] }
+        ], width:'*' },
+      titleRight
+    ], margin:[0,0,0,5]
+  };
+
+  // Hilfsfunktion für eine zweispaltige Zeile mit je Beschriftung (grau hinterlegt) und Wert.
+  function fRow(l1,v1,l2,v2) { return [
+    { text:l1, bold:true, fontSize:7.5, color:'#444', fillColor:BG, alignment:'left', verticalAlignment:'middle' },
+    { text:v1||'', fontSize:8, alignment:'left', verticalAlignment:'middle' },
+    { text:l2, bold:true, fontSize:7.5, color:'#444', fillColor:BG, alignment:'left', verticalAlignment:'middle' },
+    { text:v2||'', fontSize:8, alignment:'left', verticalAlignment:'middle' }
+  ]; }
+  // Stammdaten-Tabelle: Netzspannung wird mit Einheit und Frequenz zu einem String
+  // zusammengesetzt, damit im PDF nicht zwei separate (teils leere) Zeilen entstehen.
+  const stammdaten = { table:{ widths:[80,'*',90,'*'], body:[
+    fRow('Kunde:',            kd.kunde,            'Projektnummer:',     kd.projektnummer),
+    fRow('Station / Anlage:', kd.station,          'Stromverteilernr.:', kd.stromverteilernummer),
+    fRow('Netzspannung:',     (kd.netzspannung||'')+(kd.netzspannung?' V':'')+(kd.frequenz?' / '+kd.frequenz+' Hz':''), 'Netzform:', (kd.netzform||'')+(kd.spannungsart?' ('+kd.spannungsart+')':'')),
+  ]}, layout:lineLayout, margin:[0,0,0,4] };
+
+  // Anlass der Prüfung: alle möglichen Anlassarten nebeneinander, angekreuzt wenn im
+  // anlass-Array der Daten enthalten.
+  const anlassItems = [
+    ['Neuanlage','Neuanlage'],['Änderung','Änderung'],
+    ['Wiederholungsprüfung','Wiederholungsprüfung'],['Instandsetzung','Instandsetzung'],
+    ['Sonstiges','Sonstiges']
+  ];
+  const anlassBlock = {
+    columns: anlassItems.map(([v,l]) => ({
+      columns:[
+        { ...cbBox(an.includes(v)), margin:[0,1,0,0] },
+        { text:l, fontSize:8, margin:[0,1,0,0] }
+      ], columnGap:4, width:'auto', margin:[0,0,12,0]
+    })), margin:[0,0,0,4]
+  };
+
+  // Angewandte Normen: Standard-Normen (DEFAULT_NORMS) plus eigene aus dem Formular
+  // ergänzte Normen werden zu einer Gesamtliste zusammengeführt und auf zwei gleichbreite
+  // Spalten aufgeteilt (half = Aufteilungspunkt), damit lange Listen nicht eine einzelne,
+  // sehr hohe Spalte ergeben.
+  const normList = [...DEFAULT_NORMS, ...(data.normen_custom||[])];
+  const half = Math.ceil(normList.length/2);
+  const normBlock = { columns:[
+    { stack:normList.slice(0,half).map(n => ({ columns:[{ ...cbBox(no.includes(n)), margin:[0,1,0,0] }, { text:n, fontSize:8, margin:[0,1,0,0] }], columnGap:4, margin:[0,1,0,2] })), width:'50%' },
+    { stack:normList.slice(half).map(n  => ({ columns:[{ ...cbBox(no.includes(n)), margin:[0,1,0,0] }, { text:n, fontSize:8, margin:[0,1,0,0] }], columnGap:4, margin:[0,1,0,2] })), width:'50%' }
+  ], margin:[0,0,0,4] };
+
+  // cc: zentrierte Kästchen-Zelle für Besichtigen-/Erproben-Tabellen. Die leeren
+  // width:'*'-Spalten links und rechts des Kästchens zentrieren es horizontal in der Zelle.
+  const cc = (v, bg) => ({ columns:[{ width:'*', text:'' }, { ...cbBox(v), margin:[0,1.3,0,0] }, { width:'*', text:'' }], fillColor:bg, margin:[0,1.5,0,1.5] });
+
+  // Besichtigen-Tabelle: Kopfzeile mit blau gefüllten Spaltenüberschriften, Datenzeilen
+  // mit abwechselnder Streifenfärbung (bg) für bessere Lesbarkeit über viele Zeilen hinweg.
+  const besBody = [[
+    { text:'Besichtigen',    bold:true, fontSize:8, color:'#fff', fillColor:C, alignment:'left', verticalAlignment:'middle' },
+    { text:'in Ordnung',     bold:true, fontSize:7.5,  color:'#fff', fillColor:C, alignment:'left', verticalAlignment:'middle' },
+    { text:'nicht in Ordnung', bold:true, fontSize:7.5, color:'#fff', fillColor:C, alignment:'left', verticalAlignment:'middle' },
+    { text:'nicht Bestandteil\nder Prüfung', bold:true, fontSize:7, color:'#fff', fillColor:C, alignment:'left', verticalAlignment:'middle' }
+  ]];
+  be.forEach((r,i) => { const bg=i%2===0?'#f4f8fd':'#fff'; besBody.push([{ text:r.punkt, fontSize:8, fillColor:bg, alignment:'left', verticalAlignment:'middle' }, cc(r.wert==='io',bg), cc(r.wert==='nio',bg), cc(r.wert==='na',bg)]); });
+  // Spaltenbreiten: Prüfpunkt-Spalte nimmt den Restplatz ('*'), Kästchenspalten sind fest.
+  const besTable = { table:{ widths:['*',54,62,76], body:besBody, dontBreakRows:true }, layout:checkLayout, margin:[0,0,0,4] };
+
+  // Erproben-Tabelle: identischer Aufbau wie Besichtigen – nur andere Prüfpunkte (er/ERP_ITEMS).
+  const erpBody = [[
+    { text:'Erproben',       bold:true, fontSize:8, color:'#fff', fillColor:C, alignment:'left', verticalAlignment:'middle' },
+    { text:'in Ordnung',     bold:true, fontSize:7.5,  color:'#fff', fillColor:C, alignment:'left', verticalAlignment:'middle' },
+    { text:'nicht in Ordnung', bold:true, fontSize:7.5, color:'#fff', fillColor:C, alignment:'left', verticalAlignment:'middle' },
+    { text:'nicht Bestandteil\nder Prüfung', bold:true, fontSize:7, color:'#fff', fillColor:C, alignment:'left', verticalAlignment:'middle' }
+  ]];
+  er.forEach((r,i) => { const bg=i%2===0?'#f4f8fd':'#fff'; erpBody.push([{ text:r.punkt, fontSize:8, fillColor:bg, alignment:'left', verticalAlignment:'middle' }, cc(r.wert==='io',bg), cc(r.wert==='nio',bg), cc(r.wert==='na',bg)]); });
+  const erpTable = { table:{ widths:['*',54,62,76], body:erpBody, dontBreakRows:true }, layout:checkLayout, margin:[0,0,0,4] };
+
+  // Jedes Messgerät bekommt ein eigenes kleines Tabellenkärtchen mit Kopfzeile + 4 Zeilen.
+  function mgBlock(m, nr) {
+    return { table:{ widths:[42,'*'], body:[
+      [{ text:`Messgerät ${nr}`, bold:true, fontSize:7.5, color:'#fff', fillColor:C, colSpan:2, margin:[2,2,2,2], alignment:'left', verticalAlignment:'middle' }, {}],
+      [{ text:'Fabrikat:',  bold:true, fontSize:7.5, fillColor:BG, alignment:'left', verticalAlignment:'middle' }, { text:m.fabrikat||' ', fontSize:8, alignment:'left', verticalAlignment:'middle' }],
+      [{ text:'Typ:',       bold:true, fontSize:7.5, fillColor:BG, alignment:'left', verticalAlignment:'middle' }, { text:m.typ||' ',      fontSize:8, alignment:'left', verticalAlignment:'middle' }],
+      [{ text:'SN-Nr.:',    bold:true, fontSize:7.5, fillColor:BG, alignment:'left', verticalAlignment:'middle' }, { text:m.sn||' ',       fontSize:8, alignment:'left', verticalAlignment:'middle' }],
+      [{ text:'l. Kalib.:', bold:true, fontSize:7.5, fillColor:BG, alignment:'left', verticalAlignment:'middle' }, { text:m.kalib||' ',    fontSize:8, alignment:'left', verticalAlignment:'middle' }],
+    ]}, layout:lineLayout };
+  }
+  // Alle drei Messgeräte-Kärtchen nebeneinander mit kleinen Abstandshaltern (width:8-Spalten)
+  // dazwischen – fehlende Geräte (mg[1]/mg[2] undefined) werden als leere Kärtchen dargestellt.
+  const mgSection = { columns:[
+    { ...mgBlock(mg[0]||{},1), width:'*' }, { width:8, text:'' },
+    { ...mgBlock(mg[1]||{},2), width:'*' }, { width:8, text:'' },
+    { ...mgBlock(mg[2]||{},3), width:'*' }
+  ]};
+
+  // Prüfergebnis-Block: drei Auswahlmöglichkeiten in einer zweispaltigen Tabelle – links
+  // Mangelfrei/Bedingt i.O. übereinander gestapelt, rechts der Verweis auf ein Folgeblatt.
+  const pgBlock = { table:{ widths:['*','*'], body:[[
+    { stack:[
+        { columns:[{ ...cbBox(pg==='io'||pg==='mangelfrei'), margin:[0,1,0,0] }, { text:'Prüfergebnis Mangelfrei', fontSize:8.5, margin:[4,1,0,0] }], columnGap:0, margin:[0,0,0,4] },
+        { columns:[{ ...cbBox(pg==='nio'||pg==='bedingt'),   margin:[0,1,0,0] }, { text:'Mängel / Bedingt i.O.',   fontSize:8.5, margin:[4,1,0,0] }], columnGap:0 }
+      ]},
+    { columns:[{ ...cbBox(pg==='folgeblatt'), margin:[0,1,0,0] }, { text:'siehe Folgeblatt (-blätter)', fontSize:8.5, margin:[4,1,0,0] }], columnGap:0 }
+  ]]}, layout:lineLayout, margin:[0,0,0,4] };
+
+  // Bemerkungsfeld mit fester Mindesthöhe (minHeight:36), damit die Box auch bei leerem
+  // Bemerkungstext nicht auf Textzeilenhöhe zusammenschrumpft und optisch verloren geht.
+  const bemBlock = { table:{ widths:['*'], body:[[
+    { stack:[
+        { text:'Bemerkungen / Mängel:', bold:true, fontSize:8 },
+        { text:data.bemerkungen||'', fontSize:8, margin:[0,3,0,0] }
+      ], minHeight:36 }
+  ]]}, layout:lineLayout, margin:[0,0,0,6] };
+
+  // Datum kommt aus dem <input type="date"> im Format YYYY-MM-DD, wird hier fürs PDF ins
+  // deutsche TT.MM.JJJJ-Format umgedreht.
+  const fmtDatum = d => d ? d.split('-').reverse().join('.') : '';
+  // Zeichnet eine dünne Unterschriftslinie per Canvas – braucht keinen Rahmen/Layout,
+  // deshalb direkt als canvas-Objekt statt über eine Tabellenzelle mit Border.
+  const mkLine = () => ({ canvas:[{ type:'line', x1:0, y1:0, x2:220, y2:0, lineWidth:0.5, lineColor:'#555' }] });
+  // Unterschrift-Bereich: 2 Leerzeilen Abstand für handschriftliche Unterschrift auf dem
+  // Ausdruck, danach Ort/Datum bzw. Prüfername, zum Schluss die Linie – oder, falls eine
+  // digitale Signatur vorhanden ist (data:image/... Data-URL aus dem Signatur-Pad), wird
+  // stattdessen direkt das Bild eingebettet statt der leeren Linie.
+  const sigBlock = {
+    table:{ widths:['*',16,'*'], body:[
+      [{ text:'Ort, Datum:', bold:true, fontSize:8 }, { text:'' }, { text:'Name Prüfer / Druckschrift / Unterschrift:', bold:true, fontSize:8 }],
+      [{ text:'', margin:[0,8,0,0] }, { text:'' }, { text:'', margin:[0,8,0,0] }],
+      [{ text:'' }, { text:'' }, { text:'' }],
+      [{ text: u.ort?(u.ort+(u.datum?', '+fmtDatum(u.datum):'')):'', fontSize:9 }, { text:'' }, { text:u.pruefer||'', fontSize:9 }],
+      [{ stack:[ mkLine(), { text:'Ort, Datum', fontSize:7, color:'#888', margin:[0,1,0,0] }] }, { text:'' },
+        u.signatur && u.signatur.startsWith('data:image/')
+          ? { image:u.signatur, width:160, height:52 }
+          : { stack:[ mkLine(), { text:'Druckschrift / Unterschrift', fontSize:7, color:'#888', margin:[0,1,0,0] }] }
+      ]
+    ]}, layout:'noBorders', margin:[0,6,0,0]
+  };
+
+  // Eigenes, etwas geräumigeres Layout für die große Messprotokoll-Tabelle (16 Spalten) –
+  // die ersten zwei Kopfzeilen-Linien werden dicker gezeichnet, um die zwei gruppierten
+  // Kopfzeilen optisch klar vom Tabellenkörper abzugrenzen.
+  // Farbkonstanten für die drei farblich gruppierten Spaltenblöcke im Messprotokoll:
+  // dunkelblau = allgemeine Spalten, mittelblau = Isolationswiderstand, dunkelgrün = RCD.
+  const CH='#1a3a5c', CHR='#1e5799', CHG='#1a5c3a';
+  const mpLayout = {
+    hLineWidth:(i)=>i<=2?0.8:0.4, vLineWidth:()=>0.4,
+    hLineColor:()=>LN, vLineColor:()=>LN,
+    paddingTop:()=>2, paddingBottom:()=>2, paddingLeft:()=>2, paddingRight:()=>2
+  };
+  // Erste Kopfzeile: Spaltengruppen, die sich über mehrere Spalten erstrecken (colSpan).
+  // Die leeren {}-Einträge nach jedem colSpan-Header sind Pflicht bei pdfmake – sie
+  // markieren die "überdeckten" Folgezellen, die sonst als fehlend/undefined gelten würden.
+  const mpHdr1 = [
+    { text:'Stromkreis',                          bold:true, fontSize:7, color:'#fff', fillColor:CH,  rowSpan:2, alignment:'left', verticalAlignment:'middle' },
+    { text:'Leitung / Kabel',                     bold:true, fontSize:7, color:'#fff', fillColor:CH,  colSpan:3, alignment:'left', verticalAlignment:'middle' },{},{},
+    { text:'Überstrom-Schutzeinrichtung',          bold:true, fontSize:7, color:'#fff', fillColor:CH,  colSpan:4, alignment:'left', verticalAlignment:'middle' },{},{},{},
+    { text:'Riso (MΩ)',                           bold:true, fontSize:7, color:'#fff', fillColor:CHR, colSpan:2, alignment:'left', verticalAlignment:'middle' },{},
+    { text:'Fehlerstrom-Schutzeinrichtung (RCD)', bold:true, fontSize:7, color:'#fff', fillColor:CHG, colSpan:6, alignment:'left', verticalAlignment:'middle' },{},{},{},{},{}
+  ];
+  // Zweite Kopfzeile: die einzelnen Spaltenbezeichnungen unter den Gruppenüberschriften.
+  const mpHdr2 = [
+    {},
+    { text:'Typ',          bold:true, fontSize:6.5, color:'#fff', fillColor:CH,  alignment:'left', verticalAlignment:'middle' },
+    { text:'Ltr',          bold:true, fontSize:6.5, color:'#fff', fillColor:CH,  alignment:'left', verticalAlignment:'middle' },
+    { text:'mm²',          bold:true, fontSize:6.5, color:'#fff', fillColor:CH,  alignment:'left', verticalAlignment:'middle' },
+    { text:'Art',          bold:true, fontSize:6.5, color:'#fff', fillColor:CH,  alignment:'left', verticalAlignment:'middle' },
+    { text:'In (A)',       bold:true, fontSize:6.5, color:'#fff', fillColor:CH,  alignment:'left', verticalAlignment:'middle' },
+    { text:'Zi\nL-N (Ω)', bold:true, fontSize:6.5, color:'#fff', fillColor:CH,  alignment:'left', verticalAlignment:'middle' },
+    { text:'Zi\nL-PE(Ω)', bold:true, fontSize:6.5, color:'#fff', fillColor:CH,  alignment:'left', verticalAlignment:'middle' },
+    { text:'ohne\nVerbr.', bold:true, fontSize:6.5, color:'#fff', fillColor:CHR, alignment:'left', verticalAlignment:'middle' },
+    { text:'mit\nVerbr.',  bold:true, fontSize:6.5, color:'#fff', fillColor:CHR, alignment:'left', verticalAlignment:'middle' },
+    { text:'In/Art\n(A)',  bold:true, fontSize:6.5, color:'#fff', fillColor:CHG, alignment:'left', verticalAlignment:'middle' },
+    { text:'IDn\n(mA)',    bold:true, fontSize:6.5, color:'#fff', fillColor:CHG, alignment:'left', verticalAlignment:'middle' },
+    { text:'Imess\n(mA)',  bold:true, fontSize:6.5, color:'#fff', fillColor:CHG, alignment:'left', verticalAlignment:'middle' },
+    { text:'ta\n(ms)',     bold:true, fontSize:6.5, color:'#fff', fillColor:CHG, alignment:'left', verticalAlignment:'middle' },
+    { text:'UL\n(V)',      bold:true, fontSize:6.5, color:'#fff', fillColor:CHG, alignment:'left', verticalAlignment:'middle' },
+    { text:'Umess\n(V)',   bold:true, fontSize:6.5, color:'#fff', fillColor:CHG, alignment:'left', verticalAlignment:'middle' }
+  ];
+  // Messprotokoll-Datenzeilen mit abwechselnder Streifenfärbung für bessere Lesbarkeit
+  // über die vielen Spalten/Zeilen hinweg.
+  const mpRows = mp.map((r,i) => [
+    r.ziel||'',r.ltyp||'',r.leiter||'',r.qs||'',r.usart||'',r.usin||'',
+    r.zi_ln||'',r.zi_lpe||'',r.riso_o||'',r.riso_m||'',
+    r.rcd_art||'',r.idn||'',r.imess||'',r.ta||'',r.ul||'',r.umess||''
+  ].map(v => ({ text:v, fontSize:7, alignment:'left', verticalAlignment:'middle', fillColor:i%2===0?'#f4f8fd':'#fff' })));
+
+  // Rückgabe: vollständiges pdfmake-Dokumentobjekt.
+  return {
+    pageSize:'A4', pageOrientation:'portrait', pageMargins:[28,54,28,44],   // [links,oben,rechts,unten] – Platz für Kopf-/Fußzeile
+    // Kopfzeile auf jeder Seite: Protokolltitel+Station links, Seitennummer rechts.
+    header:(page,count) => ({ columns:[
+      { text:`Prüfprotokoll | ${kd.station||''}`, fontSize:7, color:'#777', margin:[28,18,0,0] },
+      { text:`Seite ${page} von ${count}`, fontSize:7, color:'#777', margin:[0,18,28,0], alignment:'right' }
+    ]}),
+    // Fußzeile auf jeder Seite: Erstelldatum links, Prüfername rechts.
+    footer:(page,count) => ({ columns:[
+      { text:`Erstellt: ${new Date().toLocaleDateString('de-DE')}`, fontSize:6.5, color:'#bbb', margin:[28,8,0,0] },
+      { text:`Prüfer: ${u.pruefer||''}`, fontSize:6.5, color:'#bbb', margin:[0,8,28,0], alignment:'right' }
+    ]}),
+    // Seiteninhalt in der Reihenfolge, wie er im PDF erscheinen soll.
+    content:[
+      titleRow,
+      { canvas:[{type:'line',x1:0,y1:0,x2:535,y2:0,lineWidth:1,lineColor:C}], margin:[0,0,0,5] },
+      stammdaten,
+      secHead('Anlass der Prüfung'), anlassBlock,
+      secHead('Prüfung durchgeführt nach'), normBlock,
+      besTable, erpTable,
+      secHead('Verwendete Messgeräte'), mgSection,
+      // Prüfergebnis beginnt bewusst auf einer neuen Seite (pageBreak:'before'), damit
+      // Prüfergebnis+Bemerkungen nicht durch einen automatischen Seitenumbruch mitten im
+      // Block zerrissen werden.
+      { ...secHead('Prüfergebnis'), pageBreak:'before' }, pgBlock, bemBlock,
+      // Messprotokoll-Überschrift als eigener blauer Balken (gleicher Stil wie secHead(),
+      // hier aber ohne keepWithNextN, weil die riesige Tabelle direkt danach ohnehin nicht
+      // komplett auf eine Seite passen würde).
+      { table:{ widths:['*'], body:[[{ text:'Messprotokoll', bold:true, fontSize:8.5, color:'#fff', fillColor:C, margin:[4,3,4,3] }]] }, layout:'noBorders', margin:[0,6,0,2] },
+      // Messprotokoll-Tabelle mit 16 Spalten und 2 gruppierten Kopfzeilen (headerRows:2
+      // sorgt dafür, dass pdfmake bei einem Seitenumbruch beide Kopfzeilen wiederholt).
+      { table:{ widths:['*',28,20,20,24,20,30,30,26,26,24,20,26,20,16,26], headerRows:2, dontBreakRows:true, body:[mpHdr1, mpHdr2, ...mpRows] }, layout:mpLayout },
+      secHead('Ort, Datum und Unterschrift'), sigBlock
+    ],
+    defaultStyle:{ font:'Roboto', fontSize:9 }
+  };
+}
+
+// ── Haupt-Export ─────────────────────────────────────────────────
+// Wird vom "PDF erstellen"-Button aufgerufen: baut das PDF per pdfmake und stößt sofort
+// den Browser-Download an. SharePoint-Upload, Token-Verwaltung und der JSON-Import/-Export
+// über die Desktop-App sind bewusst entfernt worden (Sicherheitshärtung) – das PDF landet
+// nur noch lokal im Browser/auf dem Gerät und wird von dort aus manuell weiterverteilt
+// (z.B. per E-Mail über die native Teilen-Funktion des Geräts).
+async function doExport() {
+  const data    = collectData();
+  const station = data.kopfdaten.station || 'Protokoll';
+  const datum   = data.unterschrift.datum || new Date().toISOString().slice(0,10);
+  const base    = `Pruefprotokoll_${station}_${datum}`.replace(/[/\\:*?"<>|]/g,'_');
+
+  const logo = await getLogoB64();
+  pdfMake.createPdf(buildPDF(data, logo)).download(`${base}.pdf`);
+}
+
+// ════════════════════════════════════════════════════════════════
+//  INIT
+//  Baut beim ersten Laden der Seite das komplette Formulargerüst auf: Stepper, die
+//  dynamischen Tabellen (Besichtigen/Erproben/Messprotokoll) und die Netzform-/Normen-/
+//  Prüfer-Listen aus localStorage.
+// ════════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  buildStepper();
+  showStep(1);
+  document.getElementById('datum').valueAsDate = new Date();   // Datum-Feld auf heute vorbelegen
+
+  renderNF();
+  renderNorms([]);
+  buildCheckTable(BES_ITEMS, 'bes-body', 'bes');
+  buildCheckTable(ERP_ITEMS, 'erp-body', 'erp');
+  buildMessgeraete();
+  addMessRow(); addMessRow(); addMessRow();   // Messprotokoll startet mit 3 leeren Zeilen zum Loslegen
+  renderPrueferAll();
+});
+</script>
+</body>
+</html>
