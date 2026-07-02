@@ -1,0 +1,1822 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <meta name="robots" content="noindex, nofollow, noimageindex">
+  
+  
+  <style id="anti-clickjack">#app-root{display:none !important;}</style>
+  <script>
+if (window.self === window.top) {
+  document.addEventListener("DOMContentLoaded", () => {
+    const s = document.getElementById("anti-clickjack");
+    if (s) s.remove();
+  });
+} else {
+  window.top.location = window.self.location;
+}
+</script>
+  
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self';">
+  
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <title>Prüfprotokoll – Über- und Fehlerstrom-Schutzeinrichtungen</title>
+  
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.css" rel="stylesheet"
+        integrity="sha384-Bk5cbLkZQ5raZ0+H2/+VbfYx3WpvxvQK4zqXZr7sYODuaX7bKXoSOnipQxkaS8sv" crossorigin="anonymous">
+  <style>
+    :root { --primary:#1a3a5c; --accent:#e8a020; }
+    body { background:#eef2f7; font-family:'Segoe UI',system-ui,sans-serif; min-height:100vh; }
+
+    
+    .topbar { background:var(--primary); padding:.7rem 1.5rem; display:flex; align-items:center;
+              justify-content:space-between; position:sticky; top:0; z-index:1000;
+              box-shadow:0 2px 8px rgba(0,0,0,.3); }
+    .topbar-title { color:#fff; font-size:1rem; font-weight:700; display:flex; align-items:center; gap:.6rem; }
+
+    
+    .stepper { display:flex; padding:1.2rem 0 .5rem; overflow-x:auto; }
+    .step-item { flex:1; min-width:68px; display:flex; flex-direction:column;
+                 align-items:center; position:relative; }
+    
+    .step-item:not(:last-child)::after {
+      content:''; position:absolute; top:17px; left:calc(50% + 18px);
+      width:calc(100% - 36px); height:2px; background:#dee2e6; z-index:0; }
+    
+    .step-item.done:not(:last-child)::after { background:var(--primary); }
+    .step-circle { width:34px; height:34px; border-radius:50%; border:2px solid #dee2e6;
+      background:#fff; display:flex; align-items:center; justify-content:center;
+      font-weight:700; font-size:.82rem; color:#adb5bd; z-index:1; position:relative;
+      transition:all .25s; cursor:pointer; }
+    
+    .step-circle:hover { box-shadow:0 0 0 4px rgba(26,58,92,.15); }
+    .step-item.active .step-circle { border-color:var(--primary); background:var(--primary); color:#fff; box-shadow:0 0 0 4px rgba(26,58,92,.15); }
+    .step-item.done .step-circle  { border-color:var(--primary); background:var(--primary); color:#fff; }
+    .step-label { font-size:.68rem; color:#6c757d; text-align:center; margin-top:5px;
+                  max-width:72px; line-height:1.25; }
+    .step-item.active .step-label { color:var(--primary); font-weight:700; }
+    .step-item.done  .step-label  { color:var(--primary); }
+
+    
+    .step-card { background:#fff; border-radius:10px; box-shadow:0 2px 14px rgba(0,0,0,.09);
+                 display:none; overflow:hidden; }
+    .step-card.active { display:block; }
+    .step-head { background:var(--primary); color:#fff; font-weight:700; font-size:1rem;
+                 padding:.8rem 1.25rem; display:flex; align-items:center; gap:.6rem; }
+    .step-body { padding:1.5rem 1.25rem; }
+    .step-nav  { background:#f8fafc; border-top:1px solid #e9ecef; padding:.85rem 1.25rem;
+                 display:flex; justify-content:space-between; align-items:center; }
+    .step-nav .counter { font-size:.82rem; color:#6c757d; font-weight:600; }
+
+    
+    label.fw-sb { font-weight:600; font-size:.88rem; margin-bottom:.25rem; display:block; }
+    .sec-label { font-size:.92rem; font-weight:700; color:var(--primary); border-bottom:2px solid #e9ecef;
+                 padding-bottom:.35rem; margin-bottom:1rem; }
+
+    
+    .table th { background:var(--primary); color:#fff; font-size:.78rem; padding:.4rem .5rem; vertical-align:middle; }
+    .table td { font-size:.83rem; vertical-align:middle; padding:.3rem .5rem; }
+    .table-striped>tbody>tr:nth-of-type(odd)>* { background:#f8fafc; }
+    .check-cell { text-align:center; }
+    .mess-th  { font-size:.72rem; text-align:center; }
+    .mess-inp { font-size:.78rem; padding:.18rem .3rem; }
+
+    
+    .nf-tag { display:inline-flex; align-items:center; gap:.3rem; background:#e9ecef;
+              border-radius:20px; padding:.28rem .9rem; font-size:.85rem; cursor:pointer;
+              border:2px solid transparent; transition:all .2s; user-select:none; }
+    .nf-tag:hover  { border-color:#adb5bd; }
+    .nf-tag.active { background:var(--primary); color:#fff; border-color:var(--primary); }
+    .nf-tag .del   { font-size:.7rem; opacity:.6; cursor:pointer; }
+    .nf-tag .del:hover { opacity:1; }
+
+    
+    .norm-check { display:inline-flex; align-items:center; gap:.3rem; background:#f0f4f8;
+                  border-radius:6px; padding:.3rem .8rem; font-size:.83rem;
+                  border:1px solid #dee2e6; }
+    .norm-check input { cursor:pointer; }
+    .norm-check.custom { border-color:#adb5bd; }
+    .norm-del { background:none; border:none; color:#dc3545; font-size:.75rem; padding:0; cursor:pointer; opacity:.7; }
+    .norm-del:hover { opacity:1; }
+
+    
+    .pruefer-row { display:flex; align-items:center; justify-content:space-between;
+                   padding:.4rem .2rem; border-bottom:1px solid #f0f0f0; }
+    .pruefer-row:last-child { border-bottom:none; }
+
+    
+    
+    .mess-tbl { table-layout:fixed; width:100%; border-collapse:collapse; font-size:.72rem; }
+    .mess-tbl th { background:var(--primary); color:#fff; padding:3px 4px; text-align:center;
+                   vertical-align:middle; font-size:.68rem; line-height:1.2; border:1px solid #27527a; }
+    .mess-tbl td { padding:2px 3px; border:1px solid #dee2e6; vertical-align:middle; }
+    .mess-tbl tbody tr:nth-child(odd) td { background:#f8fafc; }
+    .mess-tbl tbody tr:nth-child(even) td { background:#fff; }
+    .mess-tbl .mess-inp-cell { width:100%; font-size:.72rem; padding:2px 3px;
+                      border:1px solid #ced4da; border-radius:3px; background:transparent; }
+    .mess-tbl .mess-inp-cell:focus { outline:none; border-color:var(--primary);
+                             background:#fff; box-shadow:0 0 0 2px rgba(26,58,92,.15); }
+
+    
+    
+    .sig-wrap { border:2px dashed #adb5bd; border-radius:8px; background:#fafafa;
+                position:relative; cursor:crosshair; }
+    
+    .sig-wrap canvas { display:block; width:100%; touch-action:none; border-radius:6px; }
+    .sig-wrap.signed { border-color:var(--primary); border-style:solid; background:#fff; }
+    
+    .sig-hint { position:absolute; inset:0; display:flex; align-items:center;
+                justify-content:center; color:#adb5bd; font-size:.9rem; pointer-events:none; }
+    .sig-wrap.signed .sig-hint { display:none; }
+  </style>
+</head>
+<body>
+
+<noscript style="display:block;background:#fff3cd;color:#664d03;padding:1rem;text-align:center;font-family:sans-serif">
+  Diese App benötigt JavaScript. Bitte aktivieren Sie JavaScript in Ihrem Browser.
+</noscript>
+
+
+<div id="app-root">
+
+
+<div class="topbar">
+  <div class="topbar-title">
+    <span style="color:var(--accent);font-size:1.4rem"><i class="bi bi-lightning-charge-fill"></i></span>
+    Prüfprotokoll – Über- und Fehlerstrom-Schutzeinrichtungen
+  </div>
+
+  <div class="d-flex gap-2 flex-wrap align-items-center">
+    <button class="btn btn-sm btn-outline-light" onclick="window.open(location.href, '_blank')" title="Neues leeres Formular in einem neuen Tab öffnen">
+      <i class="bi bi-plus-square me-1"></i>Neues Formular
+    </button>
+    <button class="btn btn-warning btn-sm" onclick="doExport()"><i class="bi bi-file-earmark-pdf me-1"></i>PDF erstellen</button>
+  </div>
+</div>
+
+<div class="container-xl py-3 pb-5">
+
+  
+  <div class="stepper" id="stepper"></div>
+
+  
+  <div class="step-card" id="step-1">
+    <div class="step-head"><i class="bi bi-building"></i>Allgemeine Angaben</div>
+    <div class="step-body">
+      <div class="row g-3">
+        <div class="col-md-6">
+          <label class="fw-sb">Kunde</label>
+          <input type="text" class="form-control" id="kunde" maxlength="200">
+        </div>
+        <div class="col-md-6">
+          <label class="fw-sb">Station / Anlage</label>
+          <input type="text" class="form-control" id="station" maxlength="200">
+        </div>
+        <div class="col-md-4">
+          <label class="fw-sb">Projektnummer</label>
+          <input type="text" class="form-control" id="projektnummer" maxlength="100">
+        </div>
+        <div class="col-md-4">
+          <label class="fw-sb">Stromverteilernummer</label>
+          <input type="text" class="form-control" id="stromverteilernummer" maxlength="100">
+        </div>
+        <div class="col-md-3">
+          <label class="fw-sb">Netzspannung</label>
+          <div class="input-group">
+            <input type="number" class="form-control" id="netzspannung" value="400" min="0" max="100000" step="any">
+            <span class="input-group-text">V</span>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <label class="fw-sb">Frequenz</label>
+          <div class="input-group">
+            <input type="number" class="form-control" id="frequenz" value="50" min="0" max="1000" step="any">
+            <span class="input-group-text">Hz</span>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <label class="fw-sb">Spannungsart</label>
+          <div class="d-flex gap-2 mt-1">
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="spannungsart" id="sa_ac" value="AC" checked>
+              <label class="form-check-label" for="sa_ac">AC</label>
+            </div>
+            <div class="form-check">
+              <input class="form-check-input" type="radio" name="spannungsart" id="sa_dc" value="DC">
+              <label class="form-check-label" for="sa_dc">DC</label>
+            </div>
+          </div>
+        </div>
+
+        
+        <div class="col-12">
+          <label class="fw-sb">Netzform wählen</label>
+          <div class="d-flex flex-wrap gap-2 align-items-center mb-2" id="nf-tags"></div>
+          <div class="input-group input-group-sm" style="max-width:300px">
+            <input type="text" class="form-control" id="nf-input"
+                   placeholder="Eigene Netzform hinzufügen …" maxlength="20"
+                   onkeydown="if(event.key==='Enter'){addNetzform();event.preventDefault();}">
+            <button class="btn btn-outline-primary" onclick="addNetzform()">
+              <i class="bi bi-plus-lg"></i>
+            </button>
+          </div>
+          <small class="text-muted">Tipp: Auf eine Netzform klicken um sie auszuwählen. Eigene mit <kbd>+</kbd> hinzufügen.</small>
+        </div>
+      </div>
+    </div>
+    <div class="step-nav">
+      <button class="btn btn-secondary" disabled>← Zurück</button>
+      <span class="counter">Schritt 1 von 8</span>
+      <button class="btn btn-primary" onclick="nextStep()">Weiter →</button>
+    </div>
+  </div>
+
+  
+  <div class="step-card" id="step-2">
+    <div class="step-head"><i class="bi bi-check2-square"></i>Anlass der Prüfung &amp; Normen</div>
+    <div class="step-body">
+
+      <div class="sec-label">Anlass der Prüfung</div>
+      <div class="d-flex flex-wrap gap-3 mb-4">
+        <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" id="a_neuanlage"    value="Neuanlage"><label          class="form-check-label" for="a_neuanlage">Neuanlage</label></div>
+        <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" id="a_aenderung"   value="Änderung"><label            class="form-check-label" for="a_aenderung">Änderung</label></div>
+        <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" id="a_sonstiges"   value="Sonstiges"><label           class="form-check-label" for="a_sonstiges">Sonstiges</label></div>
+        <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" id="a_wiederholung" value="Wiederholungsprüfung"><label class="form-check-label" for="a_wiederholung">Wiederholungsprüfung</label></div>
+        <div class="form-check form-check-inline"><input class="form-check-input" type="checkbox" id="a_instandsetzung" value="Instandsetzung"><label   class="form-check-label" for="a_instandsetzung">Instandsetzung</label></div>
+      </div>
+
+      <div class="sec-label">Prüfung durchgeführt nach</div>
+      <div class="d-flex flex-wrap gap-2 mb-3" id="norm-list"></div>
+      <div class="input-group input-group-sm" style="max-width:380px">
+        <input type="text" class="form-control" id="norm-input"
+               placeholder="Eigene Norm eingeben (z. B. DIN EN 60204-1) …" maxlength="60"
+               onkeydown="if(event.key==='Enter'){addNorm();event.preventDefault();}">
+        <button class="btn btn-outline-primary" onclick="addNorm()">
+          <i class="bi bi-plus-lg"></i> Norm
+        </button>
+      </div>
+    </div>
+    <div class="step-nav">
+      <button class="btn btn-secondary" onclick="prevStep()">← Zurück</button>
+      <span class="counter">Schritt 2 von 8</span>
+      <button class="btn btn-primary" onclick="nextStep()">Weiter →</button>
+    </div>
+  </div>
+
+  
+  <div class="step-card" id="step-3">
+    <div class="step-head"><i class="bi bi-eye"></i>Besichtigen – Sichtprüfung</div>
+    <div class="step-body p-0">
+      <p class="px-3 pt-3 text-muted small mb-1">Bitte jeden Prüfpunkt bewerten. Nicht geprüfte Punkte offen lassen.</p>
+      <table class="table table-sm table-bordered table-striped mb-0">
+        <thead>
+          <tr>
+            <th style="width:56%">Prüfpunkt</th>
+            <th class="text-center">i.O.</th>
+            <th class="text-center">n.i.O.</th>
+            <th class="text-center">n. Bestandteil</th>
+          </tr>
+        </thead>
+        <tbody id="bes-body"></tbody>
+      </table>
+    </div>
+    <div class="step-nav">
+      <button class="btn btn-secondary" onclick="prevStep()">← Zurück</button>
+      <span class="counter">Schritt 3 von 8</span>
+      <button class="btn btn-primary" onclick="nextStep()">Weiter →</button>
+    </div>
+  </div>
+
+  
+  <div class="step-card" id="step-4">
+    <div class="step-head"><i class="bi bi-toggles"></i>Erproben / Funktionsprüfung</div>
+    <div class="step-body p-0">
+      <p class="px-3 pt-3 text-muted small mb-1">Alle Funktionen der Anlage prüfen und bewerten.</p>
+      <table class="table table-sm table-bordered table-striped mb-0">
+        <thead>
+          <tr>
+            <th style="width:56%">Prüfpunkt</th>
+            <th class="text-center">i.O.</th>
+            <th class="text-center">n.i.O.</th>
+            <th class="text-center">n. Bestandteil</th>
+          </tr>
+        </thead>
+        <tbody id="erp-body"></tbody>
+      </table>
+    </div>
+    <div class="step-nav">
+      <button class="btn btn-secondary" onclick="prevStep()">← Zurück</button>
+      <span class="counter">Schritt 4 von 8</span>
+      <button class="btn btn-primary" onclick="nextStep()">Weiter →</button>
+    </div>
+  </div>
+
+  
+  <div class="step-card" id="step-5">
+    <div class="step-head"><i class="bi bi-rulers"></i>Verwendete Messgeräte</div>
+    <div class="step-body">
+      <p class="text-muted small mb-3">Bitte alle verwendeten Messgeräte mit Kalibrierungsdatum eintragen.</p>
+      <div class="row g-3" id="mg-container"></div>
+    </div>
+    <div class="step-nav">
+      <button class="btn btn-secondary" onclick="prevStep()">← Zurück</button>
+      <span class="counter">Schritt 5 von 8</span>
+      <button class="btn btn-primary" onclick="nextStep()">Weiter →</button>
+    </div>
+  </div>
+
+  
+  <div class="step-card" id="step-6">
+    <div class="step-head"><i class="bi bi-table"></i>Messprotokoll</div>
+    <div class="step-body p-0">
+      
+      <div class="table-responsive">
+      <table class="mess-tbl">
+        
+        <colgroup>
+          <col style="width:58px">
+          <col style="width:54px"> 
+          <col style="width:38px"> 
+          <col style="width:38px"> 
+          <col style="width:48px"> 
+          <col style="width:40px"> 
+          <col style="width:66px"> 
+          <col style="width:66px"> 
+          <col style="width:48px"> 
+          <col style="width:48px"> 
+          <col style="width:48px"> 
+          <col style="width:42px"> 
+          <col style="width:42px"> 
+          <col style="width:42px"> 
+          <col style="width:36px"> 
+          <col style="width:42px"> 
+          <col style="width:28px"> 
+        </colgroup>
+        <thead>
+          <tr>
+            <th rowspan="2">Stromkreis<br>Zielbezeich.</th>
+            <th colspan="3">Leitung / Kabel</th>
+            <th colspan="4">Überstrom-Schutzeinrichtung</th>
+            <th colspan="2">R<sub>iso</sub> (MΩ)</th>
+            <th colspan="6">Fehlerstrom-Schutz (RCD)</th>
+            <th rowspan="2"></th>
+          </tr>
+          <tr>
+            <th>Typ</th><th>Ltr</th><th>mm²</th>
+            <th>Art</th><th>In<br>(A)</th>
+            <th>Zi/Ik<br>L-N/L-L</th><th>Zs/Ik<br>L-PE</th>
+            <th>ohne<br>Verb.</th><th>mit<br>Verb.</th>
+            <th>In/Art</th><th>IDn<br>(mA)</th><th>Imess<br>(mA)</th>
+            <th>ta<br>(ms)</th><th>UL<br>≤V</th><th>Umess<br>(V)</th>
+          </tr>
+        </thead>
+        <tbody id="mess-body"></tbody>
+      </table>
+      </div>
+      <div class="p-2">
+        <button class="btn btn-primary btn-sm" onclick="addMessRow()">
+          <i class="bi bi-plus-circle me-1"></i>Zeile hinzufügen
+        </button>
+      </div>
+    </div>
+    <div class="step-nav">
+      <button class="btn btn-secondary" onclick="prevStep()">← Zurück</button>
+      <span class="counter">Schritt 6 von 8</span>
+      <button class="btn btn-primary" onclick="nextStep()">Weiter →</button>
+    </div>
+  </div>
+
+  
+  <div class="step-card" id="step-7">
+    <div class="step-head"><i class="bi bi-clipboard-check"></i>Prüfergebnis &amp; Bemerkungen</div>
+    <div class="step-body">
+      <div class="sec-label">Prüfergebnis</div>
+      <div class="row g-3 mb-4">
+        <div class="col-md-5">
+          <div class="border rounded p-3 text-center" style="cursor:pointer" onclick="document.getElementById('pe_ok').click()">
+            <input class="form-check-input me-2" type="radio" name="pruefergebnis" id="pe_ok" value="Mangelfrei" checked>
+            <label class="form-check-label fw-bold text-success fs-5" for="pe_ok" style="cursor:pointer">
+              <i class="bi bi-check-circle-fill me-1"></i>Mangelfrei
+            </label>
+          </div>
+        </div>
+        <div class="col-md-7">
+          <div class="border rounded p-3 text-center" style="cursor:pointer" onclick="document.getElementById('pe_mangel').click()">
+            <input class="form-check-input me-2" type="radio" name="pruefergebnis" id="pe_mangel" value="Mängel vorhanden">
+            <label class="form-check-label fw-bold text-danger fs-5" for="pe_mangel" style="cursor:pointer">
+              <i class="bi bi-exclamation-triangle-fill me-1"></i>Mängel vorhanden – siehe Folgeblatt
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="sec-label">Bemerkungen / Mängel</div>
+      <textarea class="form-control" id="bemerkungen" rows="6" maxlength="5000"
+                placeholder="Mängel, Auffälligkeiten und weitere Bemerkungen hier eintragen …"></textarea>
+    </div>
+    <div class="step-nav">
+      <button class="btn btn-secondary" onclick="prevStep()">← Zurück</button>
+      <span class="counter">Schritt 7 von 8</span>
+      <button class="btn btn-primary" onclick="nextStep()">Weiter →</button>
+    </div>
+  </div>
+
+  
+  <div class="step-card" id="step-8">
+    <div class="step-head"><i class="bi bi-pen"></i>Ort, Datum &amp; Unterschrift</div>
+    <div class="step-body">
+
+      <div class="row g-3 mb-4">
+        <div class="col-md-4">
+          <label class="fw-sb">Ort</label>
+          <input type="text" class="form-control" id="ort" value="Hamburg" maxlength="150">
+        </div>
+        <div class="col-md-4">
+          <label class="fw-sb">Datum</label>
+          <input type="date" class="form-control" id="datum">
+        </div>
+        <div class="col-md-4">
+          <label class="fw-sb">Name Prüfer</label>
+          <select class="form-select" id="pruefer">
+            <option value="">– Prüfer wählen –</option>
+          </select>
+        </div>
+      </div>
+
+      
+      <div class="border rounded bg-light p-3 mb-4">
+        <div class="small fw-bold text-primary mb-2">
+          <i class="bi bi-people-fill me-1"></i>Prüfer verwalten
+        </div>
+        <div id="pruefer-list" class="mb-2">
+          <p class="text-muted small mb-0">Noch keine Prüfer gespeichert.</p>
+        </div>
+        <div class="input-group input-group-sm" style="max-width:380px">
+          <input type="text" class="form-control" id="pruefer-input"
+                 placeholder="Neuen Prüfer hinzufügen …" maxlength="80"
+                 onkeydown="if(event.key==='Enter'){savePruefer();event.preventDefault();}">
+          <button class="btn btn-primary" id="pruefer-save-btn" onclick="savePruefer()" title="Hinzufügen">
+            <i class="bi bi-plus-lg"></i>
+          </button>
+          <button class="btn btn-secondary" id="pruefer-cancel-btn"
+                  onclick="cancelEditPruefer()" style="display:none" title="Abbrechen">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
+      </div>
+
+      
+      <label class="fw-sb mb-2">
+        Handunterschrift
+        <small class="text-muted fw-normal">(mit Finger auf Touchscreen oder Maus zeichnen)</small>
+      </label>
+      <div class="row g-3 align-items-start">
+        <div class="col-md-8">
+          <div class="sig-wrap" id="sig-wrap">
+            <canvas id="sig-canvas" height="160"></canvas>
+            <div class="sig-hint"><i class="bi bi-pen me-2"></i>Hier unterschreiben …</div>
+          </div>
+        </div>
+        <div class="col-md-4 d-flex flex-column gap-2 pt-1">
+          <button class="btn btn-outline-secondary w-100" onclick="sigUndo()">
+            <i class="bi bi-arrow-counterclockwise me-1"></i>Rückgängig
+          </button>
+          <button class="btn btn-outline-danger w-100" onclick="sigClear()">
+            <i class="bi bi-trash me-1"></i>Löschen
+          </button>
+          <div id="sig-status" class="small text-muted text-center mt-1"></div>
+        </div>
+      </div>
+    </div>
+    <div class="step-nav">
+      <button class="btn btn-secondary" onclick="prevStep()">← Zurück</button>
+      <span class="counter">Schritt 8 von 8</span>
+      <button class="btn btn-success px-4" onclick="doExport()">
+        <i class="bi bi-file-earmark-pdf me-1"></i>PDF erstellen
+      </button>
+    </div>
+  </div>
+
+</div>
+
+</div>
+
+
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"
+        integrity="sha384-dPowQo9uxJU703klzvnG+vzLHQDNmO/zREXw6BhCMupB54CE70wj6SWOGVPySK3s" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfmake@0.2.20/build/pdfmake.min.js"
+        integrity="sha384-G23ofMOEI98f9UnroUBjDi6Ll55Y5E6bOX4VAMJo0nIbuQRIxzn0g4athUOb58zs" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfmake@0.2.20/build/vfs_fonts.js"
+        integrity="sha384-pv+tpy6KGI5sKXJDf7oGPdvyVNKYXfAmDYpZ3r3PNP0d13PJQ6YMiiAEndd5sU15" crossorigin="anonymous"></script>
+<script>
+"use strict";
+
+(function checkOrigin() {
+  const EXPECTED_HOST = "friedrichmesa.github.io";
+  const h = location.hostname.toLowerCase();
+  const isLocal = h === "localhost" || h === "127.0.0.1" || location.protocol === "file:" || h === "";
+  if (isLocal || h === EXPECTED_HOST) return;
+  document.addEventListener("DOMContentLoaded", () => {
+    const bar = document.createElement("div");
+    bar.textContent = "⚠ Diese Seite läuft nicht auf der offiziellen Adresse (" + EXPECTED_HOST + "). Möglicherweise handelt es sich um eine Kopie -- bitte keine echten Prüfdaten eingeben.";
+    bar.style.cssText = "position:sticky;top:0;z-index:2000;background:#dc3545;color:#fff;" + "padding:.6rem 1rem;text-align:center;font-weight:700;font-size:.85rem";
+    document.body.prepend(bar);
+  });
+})();
+
+const STEP_LABELS = [ "Angaben", "Anlass & Normen", "Besichtigen", "Erproben", "Messgeräte", "Messprotokoll", "Ergebnis", "Unterschrift" ];
+
+const TOTAL = 8;
+
+let currentStep = 1;
+
+function buildStepper() {
+  document.getElementById("stepper").innerHTML = STEP_LABELS.map((lbl, i) => {
+    const n = i + 1;
+    const cls = n < currentStep ? "done" : n === currentStep ? "active" : "";
+    const ico = n < currentStep ? '<i class="bi bi-check-lg"></i>' : n;
+    return `<div class="step-item ${cls}" id="si-${n}">\n              <div class="step-circle" onclick="showStep(${n})" title="Zu „${lbl}“ springen">${ico}</div>\n              <div class="step-label">${lbl}</div>\n            </div>`;
+  }).join("");
+}
+
+function showStep(n) {
+  document.querySelectorAll(".step-card").forEach(c => c.classList.remove("active"));
+  document.getElementById(`step-${n}`).classList.add("active");
+  currentStep = n;
+  buildStepper();
+  window.scrollTo({
+    top: 0,
+    behavior: "smooth"
+  });
+  if (n === 8) initSigPadOnce();
+}
+
+function nextStep() {
+  if (currentStep < TOTAL) showStep(currentStep + 1);
+}
+
+function prevStep() {
+  if (currentStep > 1) showStep(currentStep - 1);
+}
+
+const BES_ITEMS = [ "Auswahl der Betriebsmittel", "Trenn- und Schaltgeräte", "Brandschottungen", "Gebäudesystemtechnik", "Kabel, Leitungen, Stromschienen", "Kennzeichnung Stromkreis, BMK", "Kennzeichnung N- und PE-Leiter", "Leiterverbindungen", "Schutz u. Überwachungseinrichtungen", "Schutz gegen direktes Berühren", "Zugänglichkeit", "Schutzpotentialausgleich", "Zus. Örtlich Potentialausgleich", "Dokumentation" ];
+
+const ERP_ITEMS = [ "Funktionsprüfung der Anlage", "Trenn- und Schaltgeräte", "Funktion Überwachungseinrichtungen", "FI-Schutzschalter", "Kabel, Leitungen, Stromschienen", "Rechtsdrehfeld Anlage", "Drehrichtung Motoren" ];
+
+const DEFAULT_NORMS = [ "DIN VDE 0100-600", "BetrSichV", "DIN VDE 0701-0702", "TRBS", "DIN VDE 0165", "DGUV 3", "DIN VDE 0105" ];
+
+const DEFAULT_NF = [ "TN", "TT", "IT" ];
+
+const NF_KEY = "pruefprot_netzformen";
+
+const NF_SEL = "pruefprot_netzform_sel";
+
+function getNFList() {
+  return safeStringArray(NF_KEY, [ ...DEFAULT_NF ]);
+}
+
+function saveNFList(l) {
+  localStorage.setItem(NF_KEY, JSON.stringify(l));
+}
+
+function getNFSelected() {
+  return localStorage.getItem(NF_SEL) || "TN";
+}
+
+function setNFSelected(v) {
+  localStorage.setItem(NF_SEL, v);
+}
+
+function renderNF(selected) {
+  const list = getNFList();
+  const cur = selected !== undefined ? selected : getNFSelected();
+  const box = document.getElementById("nf-tags");
+  box.innerHTML = "";
+  list.forEach((nf, i) => {
+    const tag = document.createElement("span");
+    tag.className = "nf-tag" + (nf === cur ? " active" : "");
+    const isDefault = DEFAULT_NF.includes(nf);
+    const label = document.createElement("span");
+    label.textContent = nf;
+    label.addEventListener("click", () => selectNF(nf));
+    tag.appendChild(label);
+    if (!isDefault) {
+      const del = document.createElement("span");
+      del.className = "del";
+      del.title = "Entfernen";
+      del.textContent = "✕";
+      del.addEventListener("click", () => deleteNF(i));
+      tag.appendChild(del);
+    }
+    box.appendChild(tag);
+  });
+}
+
+function selectNF(v) {
+  setNFSelected(v);
+  renderNF(v);
+}
+
+function addNetzform() {
+  const inp = document.getElementById("nf-input");
+  const val = inp.value.trim().toUpperCase();
+  if (!val) return;
+  const list = getNFList();
+  if (!list.includes(val)) {
+    list.push(val);
+    saveNFList(list);
+  }
+  inp.value = "";
+  renderNF(val);
+  selectNF(val);
+}
+
+function deleteNF(i) {
+  const list = getNFList();
+  const name = list[i];
+  if (DEFAULT_NF.includes(name)) return;
+  list.splice(i, 1);
+  saveNFList(list);
+  const cur = getNFSelected();
+  renderNF(cur === name ? list[0] || "" : cur);
+}
+
+function esc(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+function safeStringArray(key, fallback) {
+  try {
+    const raw = JSON.parse(localStorage.getItem(key));
+    if (Array.isArray(raw) && raw.every(x => typeof x === "string")) return raw;
+  } catch (e) {}
+  return fallback;
+}
+
+const NORM_CUSTOM_KEY = "pruefprot_normen_custom";
+
+function getCustomNorms() {
+  return safeStringArray(NORM_CUSTOM_KEY, []);
+}
+
+function saveCustomNorms(l) {
+  localStorage.setItem(NORM_CUSTOM_KEY, JSON.stringify(l));
+}
+
+function renderNorms(checkedList) {
+  const box = document.getElementById("norm-list");
+  const custom = getCustomNorms();
+  const allNorms = [ ...DEFAULT_NORMS, ...custom ];
+  box.innerHTML = "";
+  allNorms.forEach((norm, i) => {
+    const isCustom = i >= DEFAULT_NORMS.length;
+    const checked = checkedList ? checkedList.includes(norm) : false;
+    const wrap = document.createElement("span");
+    wrap.className = "norm-check" + (isCustom ? " custom" : "");
+    wrap.innerHTML = `<input class="form-check-input norm-cb" type="checkbox" id="norm_${i}"\n                             value="${esc(norm)}" ${checked ? "checked" : ""}>\n                      <label for="norm_${i}">${esc(norm)}</label>` + (isCustom ? `<button class="norm-del" onclick="deleteNorm(${i - DEFAULT_NORMS.length})" title="Entfernen">✕</button>` : "");
+    box.appendChild(wrap);
+  });
+}
+
+function addNorm() {
+  const inp = document.getElementById("norm-input");
+  const val = inp.value.trim();
+  if (!val) return;
+  const custom = getCustomNorms();
+  if (![ ...DEFAULT_NORMS, ...custom ].includes(val)) {
+    custom.push(val);
+    saveCustomNorms(custom);
+  }
+  inp.value = "";
+  renderNorms(getCheckedNorms());
+  const all = document.querySelectorAll(".norm-cb");
+  all.forEach(cb => {
+    if (cb.value === val) cb.checked = true;
+  });
+}
+
+function deleteNorm(ci) {
+  const custom = getCustomNorms();
+  custom.splice(ci, 1);
+  saveCustomNorms(custom);
+  renderNorms(getCheckedNorms());
+}
+
+function getCheckedNorms() {
+  return Array.from(document.querySelectorAll(".norm-cb:checked")).map(cb => cb.value);
+}
+
+function toggleCheckCell(el) {
+  if (el.dataset.wasChecked === "1") el.checked = false;
+}
+
+function buildCheckTable(items, tbodyId, prefix) {
+  const tb = document.getElementById(tbodyId);
+  items.forEach((item, i) => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${esc(item)}</td>` + [ "i.O.", "n.i.O.", "n.B." ].map(v => `<td class="check-cell"><input class="form-check-input" type="radio" name="${prefix}_${i}" value="${v}"\n             onpointerdown="this.dataset.wasChecked=this.checked?'1':'0'"\n             onclick="toggleCheckCell(this)"\n             title="Erneut antippen zum Zurücksetzen"></td>`).join("");
+    tb.appendChild(tr);
+  });
+}
+
+function buildMessgeraete() {
+  const c = document.getElementById("mg-container");
+  for (let i = 1; i <= 3; i++) {
+    c.innerHTML += `\n      <div class="col-md-4">\n        <div class="border rounded p-3 bg-light h-100">\n          <div class="fw-bold text-primary mb-3"><i class="bi bi-device-hdd me-1"></i>Messgerät ${i}</div>\n          <div class="mb-2"><label class="fw-sb">Fabrikat</label><input type="text" class="form-control" id="mg${i}_fab" maxlength="100"></div>\n          <div class="mb-2"><label class="fw-sb">Typ</label><input type="text" class="form-control" id="mg${i}_typ" maxlength="100"></div>\n          <div class="mb-2"><label class="fw-sb">SN Nr.</label><input type="text" class="form-control" id="mg${i}_sn" maxlength="100"></div>\n          <div><label class="fw-sb">Letzte Kalibrierung</label><input type="date" class="form-control" id="mg${i}_kalib"></div>\n        </div>\n      </div>`;
+  }
+}
+
+let rowIdx = 0;
+
+function addMessRow(data) {
+  rowIdx++;
+  const id = rowIdx;
+  const v = key => esc(data ? data[key] || "" : "");
+  const c = (key, numeric = false) => `<td><input type="text" id="mr${id}_${key}" value="${v(key)}"\n               autocomplete="off" spellcheck="false" maxlength="30"\n               ${numeric ? 'inputmode="decimal"' : ""}\n               class="mess-inp-cell"></td>`;
+  const tr = document.createElement("tr");
+  tr.id = `mr-${id}`;
+  tr.innerHTML = c("ziel") + c("ltyp") + c("leiter", true) + c("qs") + c("usart") + c("usin", true) + c("zi_ln") + c("zi_lpe") + c("riso_o", true) + c("riso_m", true) + c("rcd_art") + c("idn", true) + c("imess", true) + c("ta", true) + c("ul", true) + c("umess", true) + `<td style="text-align:center">\n       <button style="background:none;border:none;color:#dc3545;cursor:pointer;font-size:.85rem"\n               onclick="document.getElementById('mr-${id}').remove()" title="Löschen">\n         <i class="bi bi-trash"></i></button></td>`;
+  document.getElementById("mess-body").appendChild(tr);
+  if (!data) setTimeout(() => document.getElementById(`mr${id}_ziel`)?.focus(), 30);
+}
+
+document.addEventListener("keydown", function(e) {
+  if (e.key !== "Enter") return;
+  const active = document.activeElement;
+  if (!active || !active.classList.contains("mess-inp-cell")) return;
+  e.preventDefault();
+  const inputs = Array.from(document.querySelectorAll("#mess-body .mess-inp-cell"));
+  const idx = inputs.indexOf(active);
+  if (idx === -1) return;
+  if (idx < inputs.length - 1) {
+    inputs[idx + 1].focus();
+    inputs[idx + 1].select();
+  } else {
+    addMessRow();
+  }
+});
+
+const PR_KEY = "pruefprot_pruefer";
+
+let prEditIdx = null;
+
+function getPrueferList() {
+  return safeStringArray(PR_KEY, []);
+}
+
+function savePrueferList(l) {
+  localStorage.setItem(PR_KEY, JSON.stringify(l));
+}
+
+function renderPrueferAll(selectName) {
+  const list = getPrueferList();
+  const cur = selectName !== undefined ? selectName : document.getElementById("pruefer").value;
+  const sel = document.getElementById("pruefer");
+  sel.innerHTML = '<option value="">– Prüfer wählen –</option>';
+  list.forEach(name => {
+    const o = document.createElement("option");
+    o.value = name;
+    o.textContent = name;
+    if (name === cur) o.selected = true;
+    sel.appendChild(o);
+  });
+  const box = document.getElementById("pruefer-list");
+  if (!box) return;
+  box.innerHTML = "";
+  if (list.length === 0) {
+    box.innerHTML = '<p class="text-muted small mb-0">Noch keine Prüfer gespeichert.</p>';
+    return;
+  }
+  list.forEach((name, i) => {
+    const row = document.createElement("div");
+    row.className = "pruefer-row";
+    row.innerHTML = `<span class="small fw-semibold text-truncate me-2" style="max-width:230px">${esc(name)}</span>\n      <span class="d-flex gap-1">\n        <button class="btn btn-outline-secondary btn-sm px-2 py-0" title="Umbenennen" onclick="editPruefer(${i})">\n          <i class="bi bi-pencil"></i></button>\n        <button class="btn btn-outline-danger btn-sm px-2 py-0" title="Löschen" onclick="deletePruefer(${i})">\n          <i class="bi bi-trash"></i></button>\n      </span>`;
+    box.appendChild(row);
+  });
+}
+
+function savePruefer() {
+  const inp = document.getElementById("pruefer-input");
+  const name = inp.value.trim();
+  if (!name) {
+    inp.focus();
+    return;
+  }
+  const list = getPrueferList();
+  let selected;
+  if (prEditIdx === null) {
+    if (!list.includes(name)) list.push(name);
+    selected = name;
+  } else {
+    const old = list[prEditIdx];
+    list[prEditIdx] = name;
+    selected = document.getElementById("pruefer").value === old ? name : document.getElementById("pruefer").value;
+    prEditIdx = null;
+    document.getElementById("pruefer-save-btn").innerHTML = '<i class="bi bi-plus-lg"></i>';
+    document.getElementById("pruefer-cancel-btn").style.display = "none";
+    inp.placeholder = "Neuen Prüfer hinzufügen …";
+  }
+  savePrueferList(list);
+  inp.value = "";
+  renderPrueferAll(selected);
+}
+
+function editPruefer(i) {
+  const list = getPrueferList();
+  prEditIdx = i;
+  const inp = document.getElementById("pruefer-input");
+  inp.value = list[i];
+  inp.placeholder = "Namen ändern …";
+  inp.focus();
+  document.getElementById("pruefer-save-btn").innerHTML = '<i class="bi bi-check-lg"></i>';
+  document.getElementById("pruefer-cancel-btn").style.display = "inline-flex";
+}
+
+function cancelEditPruefer() {
+  prEditIdx = null;
+  document.getElementById("pruefer-input").value = "";
+  document.getElementById("pruefer-input").placeholder = "Neuen Prüfer hinzufügen …";
+  document.getElementById("pruefer-save-btn").innerHTML = '<i class="bi bi-plus-lg"></i>';
+  document.getElementById("pruefer-cancel-btn").style.display = "none";
+}
+
+function deletePruefer(i) {
+  const list = getPrueferList();
+  const name = list[i];
+  if (!confirm(`"${name}" wirklich löschen?`)) return;
+  list.splice(i, 1);
+  savePrueferList(list);
+  const cur = document.getElementById("pruefer").value;
+  renderPrueferAll(cur === name ? "" : cur);
+}
+
+let sigPad = null;
+
+const SIG_KEY = "pruefprot_sig_tab";
+
+function initSigPadOnce() {
+  if (sigPad) return;
+  const canvas = document.getElementById("sig-canvas");
+  const wrap = document.getElementById("sig-wrap");
+  const ratio = Math.max(window.devicePixelRatio || 1, 1);
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = (rect.width || 600) * ratio;
+  canvas.height = (rect.height || 160) * ratio;
+  canvas.getContext("2d").scale(ratio, ratio);
+  sigPad = new SignaturePad(canvas, {
+    minWidth: 1.5,
+    maxWidth: 3.5,
+    penColor: "#1a3a5c"
+  });
+  sigPad.addEventListener("beginStroke", () => wrap.classList.add("signed"));
+  sigPad.addEventListener("endStroke", () => {
+    if (!sigPad.isEmpty()) {
+      sessionStorage.setItem(SIG_KEY, sigPad.toDataURL("image/png"));
+    }
+  });
+  const saved = sessionStorage.getItem(SIG_KEY);
+  if (saved) {
+    sigPad.fromDataURL(saved);
+    wrap.classList.add("signed");
+  }
+  window.addEventListener("resize", () => {
+    if (!sigPad) return;
+    const data = sigPad.toData();
+    const r2 = Math.max(window.devicePixelRatio || 1, 1);
+    const rc = canvas.getBoundingClientRect();
+    canvas.width = rc.width * r2;
+    canvas.height = rc.height * r2;
+    canvas.getContext("2d").scale(r2, r2);
+    sigPad.fromData(data);
+  });
+}
+
+function sigClear() {
+  if (sigPad) sigPad.clear();
+  sessionStorage.removeItem(SIG_KEY);
+  document.getElementById("sig-wrap").classList.remove("signed");
+  document.getElementById("sig-status").textContent = "";
+}
+
+function sigUndo() {
+  if (!sigPad) return;
+  const data = sigPad.toData();
+  if (data.length > 0) {
+    data.pop();
+    sigPad.fromData(data);
+    if (data.length === 0) document.getElementById("sig-wrap").classList.remove("signed");
+  }
+}
+
+function getSigDataURL() {
+  if (sigPad && !sigPad.isEmpty()) return sigPad.toDataURL("image/png");
+  return sessionStorage.getItem(SIG_KEY) || "";
+}
+
+function g(id) {
+  return document.getElementById(id)?.value || "";
+}
+
+function s(id, val) {
+  const el = document.getElementById(id);
+  if (el) el.value = val || "";
+}
+
+function collectData() {
+  const anlass = [ "a_neuanlage", "a_aenderung", "a_sonstiges", "a_wiederholung", "a_instandsetzung" ].filter(id => document.getElementById(id)?.checked).map(id => document.getElementById(id).value);
+  const normen = getCheckedNorms();
+  const besichtigen = BES_ITEMS.map((punkt, i) => ({
+    punkt: punkt,
+    wert: document.querySelector(`input[name="bes_${i}"]:checked`)?.value || ""
+  }));
+  const erproben = ERP_ITEMS.map((punkt, i) => ({
+    punkt: punkt,
+    wert: document.querySelector(`input[name="erp_${i}"]:checked`)?.value || ""
+  }));
+  const messgeraete = [ 1, 2, 3 ].map(i => ({
+    fabrikat: g(`mg${i}_fab`),
+    typ: g(`mg${i}_typ`),
+    sn: g(`mg${i}_sn`),
+    kalib: g(`mg${i}_kalib`)
+  }));
+  const messprotokoll = Array.from(document.querySelectorAll("#mess-body tr")).map(card => {
+    const id = card.id.replace("mr-", "");
+    const keys = [ "ziel", "ltyp", "leiter", "qs", "usart", "usin", "zi_ln", "zi_lpe", "riso_o", "riso_m", "rcd_art", "idn", "imess", "ta", "ul", "umess" ];
+    const obj = {};
+    keys.forEach(k => {
+      obj[k] = g(`mr${id}_${k}`);
+    });
+    return obj;
+  });
+  return {
+    meta: {
+      erstellt: (new Date).toISOString(),
+      version: "2.0"
+    },
+    kopfdaten: {
+      kunde: g("kunde"),
+      station: g("station"),
+      projektnummer: g("projektnummer"),
+      stromverteilernummer: g("stromverteilernummer"),
+      netzspannung: g("netzspannung"),
+      frequenz: g("frequenz"),
+      spannungsart: document.querySelector('input[name="spannungsart"]:checked')?.value || "AC",
+      netzform: getNFSelected()
+    },
+    anlass: anlass,
+    normen: normen,
+    normen_custom: getCustomNorms(),
+    netzformen_custom: getNFList().filter(n => !DEFAULT_NF.includes(n)),
+    besichtigen: besichtigen,
+    erproben: erproben,
+    messgeraete: messgeraete,
+    messprotokoll: messprotokoll,
+    pruefergebnis: document.querySelector('input[name="pruefergebnis"]:checked')?.value || "",
+    bemerkungen: g("bemerkungen"),
+    unterschrift: {
+      ort: g("ort"),
+      datum: g("datum"),
+      pruefer: g("pruefer"),
+      signatur: getSigDataURL()
+    }
+  };
+}
+
+async function getLogoB64() {
+  return null;
+}
+
+function buildPDF(data, logoB64) {
+  const kd = data.kopfdaten || {};
+  const an = data.anlass || [];
+  const no = data.normen || [];
+  const be = data.besichtigen || [];
+  const er = data.erproben || [];
+  const mg = data.messgeraete || [];
+  const mp = data.messprotokoll || [];
+  const u = data.unterschrift || {};
+  const pg = data.pruefergebnis || "";
+  const C = "#1a3a5c";
+  const BG = "#dce8f5";
+  const LN = "#c8d8ea";
+  const PAGE_MARGIN_LR = 28;
+  const CONTENT_WIDTH = 595.28 - PAGE_MARGIN_LR * 2;
+  function cbBox(v) {
+    const sz = 8;
+    const items = [ {
+      type: "rect",
+      x: .5,
+      y: .5,
+      w: sz,
+      h: sz,
+      lineWidth: 1,
+      lineColor: "#333"
+    } ];
+    if (v) {
+      items.push({
+        type: "line",
+        x1: 2,
+        y1: 2,
+        x2: sz - 1,
+        y2: sz - 1,
+        lineWidth: 1.8,
+        lineColor: "#000"
+      });
+      items.push({
+        type: "line",
+        x1: sz - 1,
+        y1: 2,
+        x2: 2,
+        y2: sz - 1,
+        lineWidth: 1.8,
+        lineColor: "#000"
+      });
+    }
+    return {
+      canvas: items,
+      width: sz + 2,
+      height: sz + 2
+    };
+  }
+  const lineLayout = {
+    hLineWidth: (i, n) => i === 0 || i === n.table.body.length ? .8 : .4,
+    vLineWidth: () => .4,
+    hLineColor: () => LN,
+    vLineColor: () => LN,
+    paddingTop: () => 1.5,
+    paddingBottom: () => 1.5,
+    paddingLeft: () => 3,
+    paddingRight: () => 3
+  };
+  const checkLayout = {
+    hLineWidth: (i, n) => i === 0 || i === n.table.body.length ? .8 : .4,
+    vLineWidth: () => .4,
+    hLineColor: () => LN,
+    vLineColor: () => LN,
+    paddingTop: () => 1,
+    paddingBottom: () => 1,
+    paddingLeft: () => 3,
+    paddingRight: () => 3
+  };
+  function secHead(title) {
+    return {
+      table: {
+        widths: [ "*" ],
+        body: [ [ {
+          text: title,
+          bold: true,
+          fontSize: 8.5,
+          color: "#fff",
+          fillColor: C,
+          margin: [ 4, 3, 4, 3 ]
+        } ] ]
+      },
+      layout: "noBorders",
+      margin: [ 0, 6, 0, 2 ],
+      keepWithNextN: 1
+    };
+  }
+  const titleRight = logoB64 ? {
+    image: logoB64,
+    width: 76,
+    alignment: "right"
+  } : {
+    text: "",
+    width: 76
+  };
+  const titleRow = {
+    columns: [ {
+      stack: [ {
+        text: "Prüfprotokoll",
+        bold: true,
+        fontSize: 15,
+        color: C
+      }, {
+        text: "Über- und Fehlerstrom-Schutzeinrichtungen",
+        bold: true,
+        fontSize: 9,
+        color: C,
+        margin: [ 0, 2, 0, 0 ]
+      } ],
+      width: "*"
+    }, titleRight ],
+    margin: [ 0, 0, 0, 5 ]
+  };
+  function fRow(l1, v1, l2, v2) {
+    return [ {
+      text: l1,
+      bold: true,
+      fontSize: 7.5,
+      color: "#444",
+      fillColor: BG,
+      alignment: "left",
+      verticalAlignment: "middle"
+    }, {
+      text: v1 || "",
+      fontSize: 8,
+      alignment: "left",
+      verticalAlignment: "middle"
+    }, {
+      text: l2,
+      bold: true,
+      fontSize: 7.5,
+      color: "#444",
+      fillColor: BG,
+      alignment: "left",
+      verticalAlignment: "middle"
+    }, {
+      text: v2 || "",
+      fontSize: 8,
+      alignment: "left",
+      verticalAlignment: "middle"
+    } ];
+  }
+  const stammdaten = {
+    table: {
+      widths: [ 80, "*", 90, "*" ],
+      body: [ fRow("Kunde:", kd.kunde, "Projektnummer:", kd.projektnummer), fRow("Station / Anlage:", kd.station, "Stromverteilernr.:", kd.stromverteilernummer), fRow("Netzspannung:", (kd.netzspannung || "") + (kd.netzspannung ? " V" : "") + (kd.frequenz ? " / " + kd.frequenz + " Hz" : ""), "Netzform:", (kd.netzform || "") + (kd.spannungsart ? " (" + kd.spannungsart + ")" : "")) ]
+    },
+    layout: lineLayout,
+    margin: [ 0, 0, 0, 4 ]
+  };
+  const anlassItems = [ [ "Neuanlage", "Neuanlage" ], [ "Änderung", "Änderung" ], [ "Wiederholungsprüfung", "Wiederholungsprüfung" ], [ "Instandsetzung", "Instandsetzung" ], [ "Sonstiges", "Sonstiges" ] ];
+  const anlassBlock = {
+    columns: anlassItems.map(([v, l]) => ({
+      columns: [ {
+        ...cbBox(an.includes(v)),
+        margin: [ 0, 1, 0, 0 ]
+      }, {
+        text: l,
+        fontSize: 8,
+        margin: [ 0, 1, 0, 0 ]
+      } ],
+      columnGap: 4,
+      width: "auto",
+      margin: [ 0, 0, 12, 0 ]
+    })),
+    margin: [ 0, 0, 0, 4 ]
+  };
+  const normList = [ ...DEFAULT_NORMS, ...data.normen_custom || [] ];
+  const half = Math.ceil(normList.length / 2);
+  const normBlock = {
+    columns: [ {
+      stack: normList.slice(0, half).map(n => ({
+        columns: [ {
+          ...cbBox(no.includes(n)),
+          margin: [ 0, 1, 0, 0 ]
+        }, {
+          text: n,
+          fontSize: 8,
+          margin: [ 0, 1, 0, 0 ]
+        } ],
+        columnGap: 4,
+        margin: [ 0, 1, 0, 2 ]
+      })),
+      width: "50%"
+    }, {
+      stack: normList.slice(half).map(n => ({
+        columns: [ {
+          ...cbBox(no.includes(n)),
+          margin: [ 0, 1, 0, 0 ]
+        }, {
+          text: n,
+          fontSize: 8,
+          margin: [ 0, 1, 0, 0 ]
+        } ],
+        columnGap: 4,
+        margin: [ 0, 1, 0, 2 ]
+      })),
+      width: "50%"
+    } ],
+    margin: [ 0, 0, 0, 4 ]
+  };
+  const cc = (v, bg) => ({
+    columns: [ {
+      width: "*",
+      text: ""
+    }, {
+      ...cbBox(v),
+      margin: [ 0, 1.3, 0, 0 ]
+    }, {
+      width: "*",
+      text: ""
+    } ],
+    fillColor: bg,
+    margin: [ 0, 1.5, 0, 1.5 ]
+  });
+  const besBody = [ [ {
+    text: "Besichtigen",
+    bold: true,
+    fontSize: 8,
+    color: "#fff",
+    fillColor: C,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "in Ordnung",
+    bold: true,
+    fontSize: 7.5,
+    color: "#fff",
+    fillColor: C,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "nicht in Ordnung",
+    bold: true,
+    fontSize: 7.5,
+    color: "#fff",
+    fillColor: C,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "nicht Bestandteil\nder Prüfung",
+    bold: true,
+    fontSize: 7,
+    color: "#fff",
+    fillColor: C,
+    alignment: "left",
+    verticalAlignment: "middle"
+  } ] ];
+  be.forEach((r, i) => {
+    const bg = i % 2 === 0 ? "#f4f8fd" : "#fff";
+    besBody.push([ {
+      text: r.punkt,
+      fontSize: 8,
+      fillColor: bg,
+      alignment: "left",
+      verticalAlignment: "middle"
+    }, cc(r.wert === "io", bg), cc(r.wert === "nio", bg), cc(r.wert === "na", bg) ]);
+  });
+  const besTable = {
+    table: {
+      widths: [ "*", 54, 62, 76 ],
+      body: besBody,
+      dontBreakRows: true
+    },
+    layout: checkLayout,
+    margin: [ 0, 0, 0, 4 ]
+  };
+  const erpBody = [ [ {
+    text: "Erproben",
+    bold: true,
+    fontSize: 8,
+    color: "#fff",
+    fillColor: C,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "in Ordnung",
+    bold: true,
+    fontSize: 7.5,
+    color: "#fff",
+    fillColor: C,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "nicht in Ordnung",
+    bold: true,
+    fontSize: 7.5,
+    color: "#fff",
+    fillColor: C,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "nicht Bestandteil\nder Prüfung",
+    bold: true,
+    fontSize: 7,
+    color: "#fff",
+    fillColor: C,
+    alignment: "left",
+    verticalAlignment: "middle"
+  } ] ];
+  er.forEach((r, i) => {
+    const bg = i % 2 === 0 ? "#f4f8fd" : "#fff";
+    erpBody.push([ {
+      text: r.punkt,
+      fontSize: 8,
+      fillColor: bg,
+      alignment: "left",
+      verticalAlignment: "middle"
+    }, cc(r.wert === "io", bg), cc(r.wert === "nio", bg), cc(r.wert === "na", bg) ]);
+  });
+  const erpTable = {
+    table: {
+      widths: [ "*", 54, 62, 76 ],
+      body: erpBody,
+      dontBreakRows: true
+    },
+    layout: checkLayout,
+    margin: [ 0, 0, 0, 4 ]
+  };
+  function mgBlock(m, nr) {
+    return {
+      table: {
+        widths: [ 42, "*" ],
+        body: [ [ {
+          text: `Messgerät ${nr}`,
+          bold: true,
+          fontSize: 7.5,
+          color: "#fff",
+          fillColor: C,
+          colSpan: 2,
+          margin: [ 2, 2, 2, 2 ],
+          alignment: "left",
+          verticalAlignment: "middle"
+        }, {} ], [ {
+          text: "Fabrikat:",
+          bold: true,
+          fontSize: 7.5,
+          fillColor: BG,
+          alignment: "left",
+          verticalAlignment: "middle"
+        }, {
+          text: m.fabrikat || " ",
+          fontSize: 8,
+          alignment: "left",
+          verticalAlignment: "middle"
+        } ], [ {
+          text: "Typ:",
+          bold: true,
+          fontSize: 7.5,
+          fillColor: BG,
+          alignment: "left",
+          verticalAlignment: "middle"
+        }, {
+          text: m.typ || " ",
+          fontSize: 8,
+          alignment: "left",
+          verticalAlignment: "middle"
+        } ], [ {
+          text: "SN-Nr.:",
+          bold: true,
+          fontSize: 7.5,
+          fillColor: BG,
+          alignment: "left",
+          verticalAlignment: "middle"
+        }, {
+          text: m.sn || " ",
+          fontSize: 8,
+          alignment: "left",
+          verticalAlignment: "middle"
+        } ], [ {
+          text: "l. Kalib.:",
+          bold: true,
+          fontSize: 7.5,
+          fillColor: BG,
+          alignment: "left",
+          verticalAlignment: "middle"
+        }, {
+          text: m.kalib || " ",
+          fontSize: 8,
+          alignment: "left",
+          verticalAlignment: "middle"
+        } ] ]
+      },
+      layout: lineLayout
+    };
+  }
+  const mgSection = {
+    columns: [ {
+      ...mgBlock(mg[0] || {}, 1),
+      width: "*"
+    }, {
+      width: 8,
+      text: ""
+    }, {
+      ...mgBlock(mg[1] || {}, 2),
+      width: "*"
+    }, {
+      width: 8,
+      text: ""
+    }, {
+      ...mgBlock(mg[2] || {}, 3),
+      width: "*"
+    } ]
+  };
+  const pgBlock = {
+    table: {
+      widths: [ "*", "*" ],
+      body: [ [ {
+        stack: [ {
+          columns: [ {
+            ...cbBox(pg === "io" || pg === "mangelfrei"),
+            margin: [ 0, 1, 0, 0 ]
+          }, {
+            text: "Prüfergebnis Mangelfrei",
+            fontSize: 8.5,
+            margin: [ 4, 1, 0, 0 ]
+          } ],
+          columnGap: 0,
+          margin: [ 0, 0, 0, 4 ]
+        }, {
+          columns: [ {
+            ...cbBox(pg === "nio" || pg === "bedingt"),
+            margin: [ 0, 1, 0, 0 ]
+          }, {
+            text: "Mängel / Bedingt i.O.",
+            fontSize: 8.5,
+            margin: [ 4, 1, 0, 0 ]
+          } ],
+          columnGap: 0
+        } ]
+      }, {
+        columns: [ {
+          ...cbBox(pg === "folgeblatt"),
+          margin: [ 0, 1, 0, 0 ]
+        }, {
+          text: "siehe Folgeblatt (-blätter)",
+          fontSize: 8.5,
+          margin: [ 4, 1, 0, 0 ]
+        } ],
+        columnGap: 0
+      } ] ]
+    },
+    layout: lineLayout,
+    margin: [ 0, 0, 0, 4 ]
+  };
+  const bemBlock = {
+    table: {
+      widths: [ "*" ],
+      body: [ [ {
+        stack: [ {
+          text: "Bemerkungen / Mängel:",
+          bold: true,
+          fontSize: 8
+        }, {
+          text: data.bemerkungen || "",
+          fontSize: 8,
+          margin: [ 0, 3, 0, 0 ]
+        } ],
+        minHeight: 36
+      } ] ]
+    },
+    layout: lineLayout,
+    margin: [ 0, 0, 0, 6 ]
+  };
+  const fmtDatum = d => d ? d.split("-").reverse().join(".") : "";
+  const mkLine = () => ({
+    canvas: [ {
+      type: "line",
+      x1: 0,
+      y1: 0,
+      x2: 220,
+      y2: 0,
+      lineWidth: .5,
+      lineColor: "#555"
+    } ]
+  });
+  const sigBlock = {
+    table: {
+      widths: [ "*", 16, "*" ],
+      body: [ [ {
+        text: "Ort, Datum:",
+        bold: true,
+        fontSize: 8
+      }, {
+        text: ""
+      }, {
+        text: "Name Prüfer / Druckschrift / Unterschrift:",
+        bold: true,
+        fontSize: 8
+      } ], [ {
+        text: "",
+        margin: [ 0, 8, 0, 0 ]
+      }, {
+        text: ""
+      }, {
+        text: "",
+        margin: [ 0, 8, 0, 0 ]
+      } ], [ {
+        text: ""
+      }, {
+        text: ""
+      }, {
+        text: ""
+      } ], [ {
+        text: u.ort ? u.ort + (u.datum ? ", " + fmtDatum(u.datum) : "") : "",
+        fontSize: 9
+      }, {
+        text: ""
+      }, {
+        text: u.pruefer || "",
+        fontSize: 9
+      } ], [ {
+        stack: [ mkLine(), {
+          text: "Ort, Datum",
+          fontSize: 7,
+          color: "#888",
+          margin: [ 0, 1, 0, 0 ]
+        } ],
+        margin: u.signatur && u.signatur.startsWith("data:image/") ? [ 0, 26, 0, 0 ] : [ 0, 0, 0, 0 ]
+      }, {
+        text: ""
+      }, u.signatur && u.signatur.startsWith("data:image/") ? {
+        image: u.signatur,
+        width: 160,
+        height: 52
+      } : {
+        stack: [ mkLine(), {
+          text: "Druckschrift / Unterschrift",
+          fontSize: 7,
+          color: "#888",
+          margin: [ 0, 1, 0, 0 ]
+        } ]
+      } ] ]
+    },
+    layout: "noBorders",
+    margin: [ 0, 6, 0, 0 ]
+  };
+  const CH = "#1a3a5c", CHR = "#1e5799", CHG = "#1a5c3a";
+  const mpLayout = {
+    hLineWidth: i => i <= 2 ? .8 : .4,
+    vLineWidth: () => .4,
+    hLineColor: () => LN,
+    vLineColor: () => LN,
+    paddingTop: () => 2,
+    paddingBottom: () => 2,
+    paddingLeft: () => 2,
+    paddingRight: () => 2
+  };
+  const mpHdr1 = [ {
+    text: "Stromkreis",
+    bold: true,
+    fontSize: 7,
+    color: "#fff",
+    fillColor: CH,
+    rowSpan: 2,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "Leitung / Kabel",
+    bold: true,
+    fontSize: 7,
+    color: "#fff",
+    fillColor: CH,
+    colSpan: 3,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {}, {}, {
+    text: "Überstrom-Schutzeinrichtung",
+    bold: true,
+    fontSize: 7,
+    color: "#fff",
+    fillColor: CH,
+    colSpan: 4,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {}, {}, {}, {
+    text: "Riso (MΩ)",
+    bold: true,
+    fontSize: 7,
+    color: "#fff",
+    fillColor: CHR,
+    colSpan: 2,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {}, {
+    text: "Fehlerstrom-Schutzeinrichtung (RCD)",
+    bold: true,
+    fontSize: 7,
+    color: "#fff",
+    fillColor: CHG,
+    colSpan: 6,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {}, {}, {}, {}, {} ];
+  const mpHdr2 = [ {}, {
+    text: "Typ",
+    bold: true,
+    fontSize: 6.5,
+    color: "#fff",
+    fillColor: CH,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "Ltr",
+    bold: true,
+    fontSize: 6.5,
+    color: "#fff",
+    fillColor: CH,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "mm²",
+    bold: true,
+    fontSize: 6.5,
+    color: "#fff",
+    fillColor: CH,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "Art",
+    bold: true,
+    fontSize: 6.5,
+    color: "#fff",
+    fillColor: CH,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "In (A)",
+    bold: true,
+    fontSize: 6.5,
+    color: "#fff",
+    fillColor: CH,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "Zi\nL-N (Ω)",
+    bold: true,
+    fontSize: 6.5,
+    color: "#fff",
+    fillColor: CH,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "Zi\nL-PE(Ω)",
+    bold: true,
+    fontSize: 6.5,
+    color: "#fff",
+    fillColor: CH,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "ohne\nVerbr.",
+    bold: true,
+    fontSize: 6.5,
+    color: "#fff",
+    fillColor: CHR,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "mit\nVerbr.",
+    bold: true,
+    fontSize: 6.5,
+    color: "#fff",
+    fillColor: CHR,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "In/Art\n(A)",
+    bold: true,
+    fontSize: 6.5,
+    color: "#fff",
+    fillColor: CHG,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "IDn\n(mA)",
+    bold: true,
+    fontSize: 6.5,
+    color: "#fff",
+    fillColor: CHG,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "Imess\n(mA)",
+    bold: true,
+    fontSize: 6.5,
+    color: "#fff",
+    fillColor: CHG,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "ta\n(ms)",
+    bold: true,
+    fontSize: 6.5,
+    color: "#fff",
+    fillColor: CHG,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "UL\n(V)",
+    bold: true,
+    fontSize: 6.5,
+    color: "#fff",
+    fillColor: CHG,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "Umess\n(V)",
+    bold: true,
+    fontSize: 6.5,
+    color: "#fff",
+    fillColor: CHG,
+    alignment: "left",
+    verticalAlignment: "middle"
+  } ];
+  const mpRows = mp.map((r, i) => [ r.ziel || "", r.ltyp || "", r.leiter || "", r.qs || "", r.usart || "", r.usin || "", r.zi_ln || "", r.zi_lpe || "", r.riso_o || "", r.riso_m || "", r.rcd_art || "", r.idn || "", r.imess || "", r.ta || "", r.ul || "", r.umess || "" ].map(v => ({
+    text: v,
+    fontSize: 7,
+    alignment: "left",
+    verticalAlignment: "middle",
+    fillColor: i % 2 === 0 ? "#f4f8fd" : "#fff"
+  })));
+  return {
+    pageSize: "A4",
+    pageOrientation: "portrait",
+    pageMargins: [ PAGE_MARGIN_LR, 54, PAGE_MARGIN_LR, 44 ],
+    header: (page, count) => ({
+      columns: [ {
+        text: `Prüfprotokoll | ${kd.station || ""}`,
+        fontSize: 7,
+        color: "#777",
+        margin: [ PAGE_MARGIN_LR, 18, 0, 0 ]
+      }, {
+        text: `Seite ${page} von ${count}`,
+        fontSize: 7,
+        color: "#777",
+        margin: [ 0, 18, PAGE_MARGIN_LR, 0 ],
+        alignment: "right"
+      } ]
+    }),
+    footer: (page, count) => ({
+      columns: [ {
+        text: `Erstellt: ${(new Date).toLocaleDateString("de-DE")}`,
+        fontSize: 6.5,
+        color: "#bbb",
+        margin: [ PAGE_MARGIN_LR, 8, 0, 0 ]
+      }, {
+        text: `Prüfer: ${u.pruefer || ""}`,
+        fontSize: 6.5,
+        color: "#bbb",
+        margin: [ 0, 8, PAGE_MARGIN_LR, 0 ],
+        alignment: "right"
+      } ]
+    }),
+    content: [ titleRow, {
+      canvas: [ {
+        type: "line",
+        x1: 0,
+        y1: 0,
+        x2: CONTENT_WIDTH,
+        y2: 0,
+        lineWidth: 1,
+        lineColor: C
+      } ],
+      margin: [ 0, 0, 0, 5 ]
+    }, stammdaten, secHead("Anlass der Prüfung"), anlassBlock, secHead("Prüfung durchgeführt nach"), normBlock, besTable, erpTable, secHead("Verwendete Messgeräte"), mgSection, {
+      ...secHead("Prüfergebnis"),
+      pageBreak: "before"
+    }, pgBlock, bemBlock, {
+      table: {
+        widths: [ "*" ],
+        body: [ [ {
+          text: "Messprotokoll",
+          bold: true,
+          fontSize: 8.5,
+          color: "#fff",
+          fillColor: C,
+          margin: [ 4, 3, 4, 3 ]
+        } ] ]
+      },
+      layout: "noBorders",
+      margin: [ 0, 6, 0, 2 ]
+    }, {
+      table: {
+        widths: [ "*", 28, 20, 20, 24, 20, 30, 30, 26, 26, 24, 20, 26, 20, 16, 26 ],
+        headerRows: 2,
+        dontBreakRows: true,
+        body: [ mpHdr1, mpHdr2, ...mpRows ]
+      },
+      layout: mpLayout
+    }, secHead("Ort, Datum und Unterschrift"), sigBlock ],
+    defaultStyle: {
+      font: "Roboto",
+      fontSize: 9
+    }
+  };
+}
+
+async function doExport() {
+  const data = collectData();
+  const kunde = data.kopfdaten.kunde || "Kunde";
+  const projektnummer = data.kopfdaten.projektnummer || "Projektnummer";
+  const station = data.kopfdaten.station || "Station";
+  const datumRaw = data.unterschrift.datum || (new Date).toISOString().slice(0, 10);
+  const datum = datumRaw.split("-").reverse().join("-");
+  const base = `Pruefprotokoll_${datum}_${kunde}_${projektnummer}_${station}`.replace(/[/\\:*?"<>|]/g, "_");
+  const logo = await getLogoB64();
+  pdfMake.createPdf(buildPDF(data, logo)).download(`${base}.pdf`);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  buildStepper();
+  showStep(1);
+  document.getElementById("datum").valueAsDate = new Date;
+  renderNF();
+  renderNorms([]);
+  buildCheckTable(BES_ITEMS, "bes-body", "bes");
+  buildCheckTable(ERP_ITEMS, "erp-body", "erp");
+  buildMessgeraete();
+  addMessRow();
+  addMessRow();
+  addMessRow();
+  renderPrueferAll();
+});
+</script>
+</body>
+</html>

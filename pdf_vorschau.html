@@ -1,0 +1,1106 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+
+<meta name="robots" content="noindex, nofollow, noimageindex">
+
+<style id="anti-clickjack">#app-root{display:none !important;}</style>
+<script>
+if (window.self === window.top) {
+  document.addEventListener("DOMContentLoaded", () => {
+    const s = document.getElementById("anti-clickjack");
+    if (s) s.remove();
+  });
+} else {
+  window.top.location = window.self.location;
+}
+</script>
+
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; font-src 'self' https://cdn.jsdelivr.net; img-src 'self' data:; connect-src 'self'; frame-src 'self' data:; object-src 'none'; base-uri 'self'; form-action 'self';">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<title>PDF Vorschau</title>
+
+<script src="https://cdn.jsdelivr.net/npm/pdfmake@0.2.20/build/pdfmake.min.js"
+        integrity="sha384-G23ofMOEI98f9UnroUBjDi6Ll55Y5E6bOX4VAMJo0nIbuQRIxzn0g4athUOb58zs" crossorigin="anonymous"></script>
+
+<script src="https://cdn.jsdelivr.net/npm/pdfmake@0.2.20/build/vfs_fonts.js"
+        integrity="sha384-pv+tpy6KGI5sKXJDf7oGPdvyVNKYXfAmDYpZ3r3PNP0d13PJQ6YMiiAEndd5sU15" crossorigin="anonymous"></script>
+<style>
+  
+  body { margin:0; font-family:sans-serif; background:#444; display:flex; flex-direction:column; align-items:center; }
+  
+  header { width:100%; background:#1a3a5c; color:#fff; padding:8px 20px; display:flex; align-items:center; gap:12px; box-sizing:border-box; }
+  header h1 { margin:0; font-size:.95rem; }
+  
+  iframe { margin:10px 0; border:none; box-shadow:0 4px 20px rgba(0,0,0,.6); }
+  
+  .loading { color:#fff; padding:40px; font-size:1.1rem; }
+</style>
+</head>
+<body>
+<noscript style="display:block;background:#fff3cd;color:#664d03;padding:1rem;text-align:center;font-family:sans-serif">
+  Diese App benötigt JavaScript. Bitte aktivieren Sie JavaScript in Ihrem Browser.
+</noscript>
+<div id="app-root">
+
+<header>
+  <h1>&#128196; Prüfprotokoll – PDF Vorschau (Musterdaten)</h1>
+  
+  <button onclick="downloadPDF()" style="margin-left:auto;padding:6px 16px;border:none;background:#f59e0b;border-radius:4px;cursor:pointer;font-weight:700;font-size:.9rem">
+    ⬇ PDF herunterladen
+  </button>
+</header>
+
+<div class="loading" id="loading">PDF wird generiert …</div>
+
+<iframe id="viewer" style="width:98vw;height:calc(100vh - 52px);display:none"></iframe>
+
+</div>
+
+<script>
+const DEFAULT_NORMS = [ "DIN VDE 0100-600", "BetrSichV", "DIN VDE 0701-0702", "TRBS", "DIN VDE 0165", "DGUV 3", "DIN VDE 0105" ];
+
+const DEMO = {
+  kopfdaten: {
+    kunde: "HH Energie Netze GmbH",
+    station: "Hauptverteilung HV-01",
+    projektnummer: "PRJ-2024-0042",
+    stromverteilernummer: "VERT-B2-001",
+    netzspannung: "400",
+    frequenz: "50",
+    netzform: "TN",
+    spannungsart: "AC"
+  },
+  anlass: [ "Neuanlage", "Wiederholungsprüfung" ],
+  normen: [ "DIN VDE 0100-600", "DGUV 3", "DIN VDE 0105" ],
+  normen_custom: [],
+  besichtigen: [ {
+    punkt: "Auswahl der Betriebsmittel",
+    wert: "io"
+  }, {
+    punkt: "Trenn- und Schaltgeräte",
+    wert: "io"
+  }, {
+    punkt: "Brandschottungen",
+    wert: "na"
+  }, {
+    punkt: "Gebäudesystemtechnik",
+    wert: "io"
+  }, {
+    punkt: "Kabel, Leitungen, Stromschienen",
+    wert: "nio"
+  }, {
+    punkt: "Kennzeichnung Stromkreis, BMK",
+    wert: "io"
+  }, {
+    punkt: "Kennzeichnung N- und PE- Leiter",
+    wert: "io"
+  }, {
+    punkt: "Leiterverbindungen",
+    wert: "io"
+  }, {
+    punkt: "Schutz u. Überwachungseinrichtungen",
+    wert: "io"
+  }, {
+    punkt: "Schutz gegen direktes Berühren",
+    wert: "io"
+  }, {
+    punkt: "Zugänglichkeit",
+    wert: "na"
+  }, {
+    punkt: "Schutzpotentialausgleich",
+    wert: "io"
+  }, {
+    punkt: "Zus. Örtlich Potentialausgleich",
+    wert: "io"
+  }, {
+    punkt: "Dokumentation",
+    wert: "nio"
+  } ],
+  erproben: [ {
+    punkt: "Funktionsprüfung der Anlage",
+    wert: "io"
+  }, {
+    punkt: "Trenn- und Schaltgeräte",
+    wert: "io"
+  }, {
+    punkt: "Funktion Überwachungseinrichtungen",
+    wert: "io"
+  }, {
+    punkt: "FI- Schutzschalter",
+    wert: "io"
+  }, {
+    punkt: "Kabel, Leitungen, Stromschienen",
+    wert: "io"
+  }, {
+    punkt: "Rechtsdrehfeld Anlage",
+    wert: "na"
+  }, {
+    punkt: "Drehrichtung Motoren",
+    wert: "na"
+  } ],
+  messgeraete: [ {
+    fabrikat: "Fluke",
+    typ: "1664 FC",
+    sn: "FL-2023-881",
+    kalib: "2025-03-01"
+  }, {
+    fabrikat: "Metrel",
+    typ: "MI 3102H",
+    sn: "MT-77221",
+    kalib: "2024-11-15"
+  }, {
+    fabrikat: "",
+    typ: "",
+    sn: "",
+    kalib: ""
+  } ],
+  messprotokoll: [ {
+    ziel: "Licht EG",
+    ltyp: "B16A",
+    leiter: "3",
+    qs: "2.5",
+    usart: "LS",
+    usin: "16",
+    zi_ln: "0.42",
+    zi_lpe: "0.38",
+    riso_o: ">500",
+    riso_m: ">500",
+    rcd_art: "-",
+    idn: "-",
+    imess: "-",
+    ta: "-",
+    ul: "-",
+    umess: "231"
+  }, {
+    ziel: "Steckd. EG",
+    ltyp: "B16A",
+    leiter: "3",
+    qs: "2.5",
+    usart: "FI",
+    usin: "16",
+    zi_ln: "0.45",
+    zi_lpe: "0.41",
+    riso_o: ">500",
+    riso_m: ">500",
+    rcd_art: "A",
+    idn: "30",
+    imess: "28",
+    ta: "22",
+    ul: "50",
+    umess: "229"
+  }, {
+    ziel: "Heizung EG",
+    ltyp: "C20A",
+    leiter: "3",
+    qs: "4.0",
+    usart: "LS",
+    usin: "20",
+    zi_ln: "0.38",
+    zi_lpe: "0.35",
+    riso_o: ">500",
+    riso_m: ">500",
+    rcd_art: "-",
+    idn: "-",
+    imess: "-",
+    ta: "-",
+    ul: "-",
+    umess: "230"
+  }, {
+    ziel: "Licht OG",
+    ltyp: "B16A",
+    leiter: "3",
+    qs: "1.5",
+    usart: "LS",
+    usin: "16",
+    zi_ln: "0.51",
+    zi_lpe: "0.48",
+    riso_o: ">500",
+    riso_m: ">500",
+    rcd_art: "-",
+    idn: "-",
+    imess: "-",
+    ta: "-",
+    ul: "-",
+    umess: "232"
+  }, {
+    ziel: "Steckd. OG",
+    ltyp: "B16A",
+    leiter: "3",
+    qs: "2.5",
+    usart: "FI",
+    usin: "16",
+    zi_ln: "0.49",
+    zi_lpe: "0.44",
+    riso_o: ">500",
+    riso_m: ">500",
+    rcd_art: "A",
+    idn: "30",
+    imess: "27",
+    ta: "21",
+    ul: "50",
+    umess: "230"
+  }, {
+    ziel: "Klimaanlage",
+    ltyp: "C16A",
+    leiter: "3",
+    qs: "2.5",
+    usart: "LS",
+    usin: "16",
+    zi_ln: "0.44",
+    zi_lpe: "0.40",
+    riso_o: ">500",
+    riso_m: ">500",
+    rcd_art: "-",
+    idn: "-",
+    imess: "-",
+    ta: "-",
+    ul: "-",
+    umess: "231"
+  } ],
+  pruefergebnis: "bedingt",
+  bemerkungen: "Kabel im EG-Bereich weist leichte Beschädigung der Isolierung auf – Austausch empfohlen. Dokumentation unvollständig, bitte nachreichen.",
+  unterschrift: {
+    ort: "München",
+    datum: "2024-06-15",
+    pruefer: "Max Mustermann",
+    signatur: ""
+  }
+};
+
+function buildPDF(data, logoB64) {
+  const kd = data.kopfdaten || {};
+  const an = data.anlass || [];
+  const no = data.normen || [];
+  const be = data.besichtigen || [];
+  const er = data.erproben || [];
+  const mg = data.messgeraete || [];
+  const mp = data.messprotokoll || [];
+  const u = data.unterschrift || {};
+  const pg = data.pruefergebnis || "";
+  const C = "#1a3a5c";
+  const BG = "#dce8f5";
+  const LN = "#c8d8ea";
+  const PAGE_MARGIN_LR = 28;
+  const CONTENT_WIDTH = 595.28 - PAGE_MARGIN_LR * 2;
+  function cbBox(v) {
+    const sz = 8;
+    const items = [ {
+      type: "rect",
+      x: .5,
+      y: .5,
+      w: sz,
+      h: sz,
+      lineWidth: 1,
+      lineColor: "#333"
+    } ];
+    if (v) {
+      items.push({
+        type: "line",
+        x1: 2,
+        y1: 2,
+        x2: sz - 1,
+        y2: sz - 1,
+        lineWidth: 1.8,
+        lineColor: "#000"
+      });
+      items.push({
+        type: "line",
+        x1: sz - 1,
+        y1: 2,
+        x2: 2,
+        y2: sz - 1,
+        lineWidth: 1.8,
+        lineColor: "#000"
+      });
+    }
+    return {
+      canvas: items,
+      width: sz + 2,
+      height: sz + 2
+    };
+  }
+  const lineLayout = {
+    hLineWidth: (i, n) => i === 0 || i === n.table.body.length ? .8 : .4,
+    vLineWidth: () => .4,
+    hLineColor: () => LN,
+    vLineColor: () => LN,
+    paddingTop: () => 1.5,
+    paddingBottom: () => 1.5,
+    paddingLeft: () => 3,
+    paddingRight: () => 3
+  };
+  const checkLayout = {
+    hLineWidth: (i, n) => i === 0 || i === n.table.body.length ? .8 : .4,
+    vLineWidth: () => .4,
+    hLineColor: () => LN,
+    vLineColor: () => LN,
+    paddingTop: () => 1,
+    paddingBottom: () => 1,
+    paddingLeft: () => 3,
+    paddingRight: () => 3
+  };
+  function secHead(title) {
+    return {
+      table: {
+        widths: [ "*" ],
+        body: [ [ {
+          text: title,
+          bold: true,
+          fontSize: 8.5,
+          color: "#fff",
+          fillColor: C,
+          margin: [ 4, 3, 4, 3 ]
+        } ] ]
+      },
+      layout: "noBorders",
+      margin: [ 0, 6, 0, 2 ],
+      keepWithNextN: 1
+    };
+  }
+  const titleRight = logoB64 ? {
+    image: logoB64,
+    width: 76,
+    alignment: "right"
+  } : {
+    text: "",
+    width: 76
+  };
+  const titleRow = {
+    columns: [ {
+      stack: [ {
+        text: "Prüfprotokoll",
+        bold: true,
+        fontSize: 15,
+        color: C
+      }, {
+        text: "Über- und Fehlerstrom-Schutzeinrichtungen",
+        bold: true,
+        fontSize: 9,
+        color: C,
+        margin: [ 0, 2, 0, 0 ]
+      } ],
+      width: "*"
+    }, titleRight ],
+    margin: [ 0, 0, 0, 5 ]
+  };
+  function fRow(l1, v1, l2, v2) {
+    return [ {
+      text: l1,
+      bold: true,
+      fontSize: 7.5,
+      color: "#444",
+      fillColor: BG,
+      alignment: "left",
+      verticalAlignment: "middle"
+    }, {
+      text: v1 || "",
+      fontSize: 8,
+      alignment: "left",
+      verticalAlignment: "middle"
+    }, {
+      text: l2,
+      bold: true,
+      fontSize: 7.5,
+      color: "#444",
+      fillColor: BG,
+      alignment: "left",
+      verticalAlignment: "middle"
+    }, {
+      text: v2 || "",
+      fontSize: 8,
+      alignment: "left",
+      verticalAlignment: "middle"
+    } ];
+  }
+  const stammdaten = {
+    table: {
+      widths: [ 80, "*", 90, "*" ],
+      body: [ fRow("Kunde:", kd.kunde, "Projektnummer:", kd.projektnummer), fRow("Station / Anlage:", kd.station, "Stromverteilernr.:", kd.stromverteilernummer), fRow("Netzspannung:", (kd.netzspannung || "") + (kd.netzspannung ? " V" : "") + (kd.frequenz ? " / " + kd.frequenz + " Hz" : ""), "Netzform:", (kd.netzform || "") + (kd.spannungsart ? " (" + kd.spannungsart + ")" : "")) ]
+    },
+    layout: lineLayout,
+    margin: [ 0, 0, 0, 4 ]
+  };
+  const anlassItems = [ [ "Neuanlage", "Neuanlage" ], [ "Änderung", "Änderung" ], [ "Wiederholungsprüfung", "Wiederholungsprüfung" ], [ "Instandsetzung", "Instandsetzung" ], [ "Sonstiges", "Sonstiges" ] ];
+  const anlassBlock = {
+    columns: anlassItems.map(([v, l]) => ({
+      columns: [ {
+        ...cbBox(an.includes(v)),
+        margin: [ 0, 1, 0, 0 ]
+      }, {
+        text: l,
+        fontSize: 8,
+        margin: [ 0, 1, 0, 0 ]
+      } ],
+      columnGap: 4,
+      width: "auto",
+      margin: [ 0, 0, 12, 0 ]
+    })),
+    margin: [ 0, 0, 0, 4 ]
+  };
+  const normList = [ ...DEFAULT_NORMS, ...data.normen_custom || [] ];
+  const half = Math.ceil(normList.length / 2);
+  const normBlock = {
+    columns: [ {
+      stack: normList.slice(0, half).map(n => ({
+        columns: [ {
+          ...cbBox(no.includes(n)),
+          margin: [ 0, 1, 0, 0 ]
+        }, {
+          text: n,
+          fontSize: 8,
+          margin: [ 0, 1, 0, 0 ]
+        } ],
+        columnGap: 4,
+        margin: [ 0, 1, 0, 2 ]
+      })),
+      width: "50%"
+    }, {
+      stack: normList.slice(half).map(n => ({
+        columns: [ {
+          ...cbBox(no.includes(n)),
+          margin: [ 0, 1, 0, 0 ]
+        }, {
+          text: n,
+          fontSize: 8,
+          margin: [ 0, 1, 0, 0 ]
+        } ],
+        columnGap: 4,
+        margin: [ 0, 1, 0, 2 ]
+      })),
+      width: "50%"
+    } ],
+    margin: [ 0, 0, 0, 4 ]
+  };
+  const besBody = [ [ {
+    text: "Besichtigen",
+    bold: true,
+    fontSize: 8,
+    color: "#fff",
+    fillColor: C,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "in Ordnung",
+    bold: true,
+    fontSize: 7.5,
+    color: "#fff",
+    fillColor: C,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "nicht in Ordnung",
+    bold: true,
+    fontSize: 7.5,
+    color: "#fff",
+    fillColor: C,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "nicht Bestandteil\nder Prüfung",
+    bold: true,
+    fontSize: 7,
+    color: "#fff",
+    fillColor: C,
+    alignment: "left",
+    verticalAlignment: "middle"
+  } ] ];
+  be.forEach((r, i) => {
+    const bg = i % 2 === 0 ? "#f4f8fd" : "#fff";
+    const cc = v => ({
+      columns: [ {
+        width: "*",
+        text: ""
+      }, {
+        ...cbBox(v),
+        margin: [ 0, 1.3, 0, 0 ]
+      }, {
+        width: "*",
+        text: ""
+      } ],
+      fillColor: bg,
+      margin: [ 0, 1.5, 0, 1.5 ]
+    });
+    besBody.push([ {
+      text: r.punkt,
+      fontSize: 8,
+      fillColor: bg,
+      alignment: "left",
+      verticalAlignment: "middle"
+    }, cc(r.wert === "io"), cc(r.wert === "nio"), cc(r.wert === "na") ]);
+  });
+  const besTable = {
+    table: {
+      widths: [ "*", 54, 62, 76 ],
+      body: besBody,
+      dontBreakRows: true
+    },
+    layout: checkLayout,
+    margin: [ 0, 0, 0, 4 ]
+  };
+  const erpBody = [ [ {
+    text: "Erproben",
+    bold: true,
+    fontSize: 8,
+    color: "#fff",
+    fillColor: C,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "in Ordnung",
+    bold: true,
+    fontSize: 7.5,
+    color: "#fff",
+    fillColor: C,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "nicht in Ordnung",
+    bold: true,
+    fontSize: 7.5,
+    color: "#fff",
+    fillColor: C,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "nicht Bestandteil\nder Prüfung",
+    bold: true,
+    fontSize: 7,
+    color: "#fff",
+    fillColor: C,
+    alignment: "left",
+    verticalAlignment: "middle"
+  } ] ];
+  er.forEach((r, i) => {
+    const bg = i % 2 === 0 ? "#f4f8fd" : "#fff";
+    const cc = v => ({
+      columns: [ {
+        width: "*",
+        text: ""
+      }, {
+        ...cbBox(v),
+        margin: [ 0, 1.3, 0, 0 ]
+      }, {
+        width: "*",
+        text: ""
+      } ],
+      fillColor: bg,
+      margin: [ 0, 1.5, 0, 1.5 ]
+    });
+    erpBody.push([ {
+      text: r.punkt,
+      fontSize: 8,
+      fillColor: bg,
+      alignment: "left",
+      verticalAlignment: "middle"
+    }, cc(r.wert === "io"), cc(r.wert === "nio"), cc(r.wert === "na") ]);
+  });
+  const erpTable = {
+    table: {
+      widths: [ "*", 54, 62, 76 ],
+      body: erpBody,
+      dontBreakRows: true
+    },
+    layout: checkLayout,
+    margin: [ 0, 0, 0, 4 ]
+  };
+  function mgBlock(m, nr) {
+    return {
+      table: {
+        widths: [ 42, "*" ],
+        body: [ [ {
+          text: `Messgerät ${nr}`,
+          bold: true,
+          fontSize: 7.5,
+          color: "#fff",
+          fillColor: C,
+          colSpan: 2,
+          margin: [ 2, 2, 2, 2 ],
+          alignment: "left",
+          verticalAlignment: "middle"
+        }, {} ], [ {
+          text: "Fabrikat:",
+          bold: true,
+          fontSize: 7.5,
+          fillColor: BG,
+          alignment: "left",
+          verticalAlignment: "middle"
+        }, {
+          text: m.fabrikat || " ",
+          fontSize: 8,
+          alignment: "left",
+          verticalAlignment: "middle"
+        } ], [ {
+          text: "Typ:",
+          bold: true,
+          fontSize: 7.5,
+          fillColor: BG,
+          alignment: "left",
+          verticalAlignment: "middle"
+        }, {
+          text: m.typ || " ",
+          fontSize: 8,
+          alignment: "left",
+          verticalAlignment: "middle"
+        } ], [ {
+          text: "SN-Nr.:",
+          bold: true,
+          fontSize: 7.5,
+          fillColor: BG,
+          alignment: "left",
+          verticalAlignment: "middle"
+        }, {
+          text: m.sn || " ",
+          fontSize: 8,
+          alignment: "left",
+          verticalAlignment: "middle"
+        } ], [ {
+          text: "l. Kalib.:",
+          bold: true,
+          fontSize: 7.5,
+          fillColor: BG,
+          alignment: "left",
+          verticalAlignment: "middle"
+        }, {
+          text: m.kalib || " ",
+          fontSize: 8,
+          alignment: "left",
+          verticalAlignment: "middle"
+        } ] ]
+      },
+      layout: lineLayout
+    };
+  }
+  const mgSection = {
+    columns: [ {
+      ...mgBlock(mg[0] || {}, 1),
+      width: "*"
+    }, {
+      width: 8,
+      text: ""
+    }, {
+      ...mgBlock(mg[1] || {}, 2),
+      width: "*"
+    }, {
+      width: 8,
+      text: ""
+    }, {
+      ...mgBlock(mg[2] || {}, 3),
+      width: "*"
+    } ]
+  };
+  const pgBlock = {
+    table: {
+      widths: [ "*", "*" ],
+      body: [ [ {
+        stack: [ {
+          columns: [ {
+            ...cbBox(pg === "io" || pg === "mangelfrei"),
+            margin: [ 0, 1, 0, 0 ]
+          }, {
+            text: "Prüfergebnis Mangelfrei",
+            fontSize: 8.5,
+            margin: [ 4, 1, 0, 0 ]
+          } ],
+          columnGap: 0,
+          margin: [ 0, 0, 0, 4 ]
+        }, {
+          columns: [ {
+            ...cbBox(pg === "nio" || pg === "bedingt"),
+            margin: [ 0, 1, 0, 0 ]
+          }, {
+            text: "Mängel / Bedingt i.O.",
+            fontSize: 8.5,
+            margin: [ 4, 1, 0, 0 ]
+          } ],
+          columnGap: 0
+        } ]
+      }, {
+        columns: [ {
+          ...cbBox(pg === "folgeblatt"),
+          margin: [ 0, 1, 0, 0 ]
+        }, {
+          text: "siehe Folgeblatt (-blätter)",
+          fontSize: 8.5,
+          margin: [ 4, 1, 0, 0 ]
+        } ],
+        columnGap: 0
+      } ] ]
+    },
+    layout: lineLayout,
+    margin: [ 0, 0, 0, 4 ]
+  };
+  const bemBlock = {
+    table: {
+      widths: [ "*" ],
+      body: [ [ {
+        stack: [ {
+          text: "Bemerkungen / Mängel:",
+          bold: true,
+          fontSize: 8
+        }, {
+          text: data.bemerkungen || "",
+          fontSize: 8,
+          margin: [ 0, 3, 0, 0 ]
+        } ],
+        minHeight: 36
+      } ] ]
+    },
+    layout: lineLayout,
+    margin: [ 0, 0, 0, 6 ]
+  };
+  const fmtDatum = d => d ? d.split("-").reverse().join(".") : "";
+  const mkLine = () => ({
+    canvas: [ {
+      type: "line",
+      x1: 0,
+      y1: 0,
+      x2: 220,
+      y2: 0,
+      lineWidth: .5,
+      lineColor: "#555"
+    } ]
+  });
+  const sigBlock = {
+    table: {
+      widths: [ "*", 16, "*" ],
+      body: [ [ {
+        text: "Ort, Datum:",
+        bold: true,
+        fontSize: 8
+      }, {
+        text: ""
+      }, {
+        text: "Name Prüfer / Druckschrift / Unterschrift:",
+        bold: true,
+        fontSize: 8
+      } ], [ {
+        text: "",
+        margin: [ 0, 8, 0, 0 ]
+      }, {
+        text: ""
+      }, {
+        text: "",
+        margin: [ 0, 8, 0, 0 ]
+      } ], [ {
+        text: ""
+      }, {
+        text: ""
+      }, {
+        text: ""
+      } ], [ {
+        text: u.ort ? u.ort + (u.datum ? ", " + fmtDatum(u.datum) : "") : "",
+        fontSize: 9
+      }, {
+        text: ""
+      }, {
+        text: u.pruefer || "",
+        fontSize: 9
+      } ], [ {
+        stack: [ mkLine(), {
+          text: "Ort, Datum",
+          fontSize: 7,
+          color: "#888",
+          margin: [ 0, 1, 0, 0 ]
+        } ],
+        margin: u.signatur && u.signatur.startsWith("data:image/") ? [ 0, 26, 0, 0 ] : [ 0, 0, 0, 0 ]
+      }, {
+        text: ""
+      }, u.signatur && u.signatur.startsWith("data:image/") ? {
+        image: u.signatur,
+        width: 160,
+        height: 52
+      } : {
+        stack: [ mkLine(), {
+          text: "Druckschrift / Unterschrift",
+          fontSize: 7,
+          color: "#888",
+          margin: [ 0, 1, 0, 0 ]
+        } ]
+      } ] ]
+    },
+    layout: "noBorders",
+    margin: [ 0, 6, 0, 0 ]
+  };
+  const mpLayout = {
+    hLineWidth: i => i <= 2 ? .8 : .4,
+    vLineWidth: () => .4,
+    hLineColor: () => LN,
+    vLineColor: () => LN,
+    paddingTop: () => 2,
+    paddingBottom: () => 2,
+    paddingLeft: () => 2,
+    paddingRight: () => 2
+  };
+  const CH = "#1a3a5c";
+  const CHR = "#1e5799";
+  const CHG = "#1a5c3a";
+  const mpHdr1 = [ {
+    text: "Stromkreis",
+    bold: true,
+    fontSize: 7,
+    color: "#fff",
+    fillColor: CH,
+    rowSpan: 2,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "Leitung / Kabel",
+    bold: true,
+    fontSize: 7,
+    color: "#fff",
+    fillColor: CH,
+    colSpan: 3,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {}, {}, {
+    text: "Überstrom-Schutzeinrichtung",
+    bold: true,
+    fontSize: 7,
+    color: "#fff",
+    fillColor: CH,
+    colSpan: 4,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {}, {}, {}, {
+    text: "Riso (MΩ)",
+    bold: true,
+    fontSize: 7,
+    color: "#fff",
+    fillColor: CHR,
+    colSpan: 2,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {}, {
+    text: "Fehlerstrom-Schutzeinrichtung (RCD)",
+    bold: true,
+    fontSize: 7,
+    color: "#fff",
+    fillColor: CHG,
+    colSpan: 6,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {}, {}, {}, {}, {} ];
+  const mpHdr2 = [ {}, {
+    text: "Typ",
+    bold: true,
+    fontSize: 6.5,
+    color: "#fff",
+    fillColor: CH,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "Ltr",
+    bold: true,
+    fontSize: 6.5,
+    color: "#fff",
+    fillColor: CH,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "mm²",
+    bold: true,
+    fontSize: 6.5,
+    color: "#fff",
+    fillColor: CH,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "Art",
+    bold: true,
+    fontSize: 6.5,
+    color: "#fff",
+    fillColor: CH,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "In (A)",
+    bold: true,
+    fontSize: 6.5,
+    color: "#fff",
+    fillColor: CH,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "Zi\nL-N (Ω)",
+    bold: true,
+    fontSize: 6.5,
+    color: "#fff",
+    fillColor: CH,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "Zi\nL-PE(Ω)",
+    bold: true,
+    fontSize: 6.5,
+    color: "#fff",
+    fillColor: CH,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "ohne\nVerbr.",
+    bold: true,
+    fontSize: 6.5,
+    color: "#fff",
+    fillColor: CHR,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "mit\nVerbr.",
+    bold: true,
+    fontSize: 6.5,
+    color: "#fff",
+    fillColor: CHR,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "In/Art\n(A)",
+    bold: true,
+    fontSize: 6.5,
+    color: "#fff",
+    fillColor: CHG,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "IDn\n(mA)",
+    bold: true,
+    fontSize: 6.5,
+    color: "#fff",
+    fillColor: CHG,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "Imess\n(mA)",
+    bold: true,
+    fontSize: 6.5,
+    color: "#fff",
+    fillColor: CHG,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "ta\n(ms)",
+    bold: true,
+    fontSize: 6.5,
+    color: "#fff",
+    fillColor: CHG,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "UL\n(V)",
+    bold: true,
+    fontSize: 6.5,
+    color: "#fff",
+    fillColor: CHG,
+    alignment: "left",
+    verticalAlignment: "middle"
+  }, {
+    text: "Umess\n(V)",
+    bold: true,
+    fontSize: 6.5,
+    color: "#fff",
+    fillColor: CHG,
+    alignment: "left",
+    verticalAlignment: "middle"
+  } ];
+  const mpRows = mp.map((r, i) => [ r.ziel || "", r.ltyp || "", r.leiter || "", r.qs || "", r.usart || "", r.usin || "", r.zi_ln || "", r.zi_lpe || "", r.riso_o || "", r.riso_m || "", r.rcd_art || "", r.idn || "", r.imess || "", r.ta || "", r.ul || "", r.umess || "" ].map(v => ({
+    text: v,
+    fontSize: 7,
+    alignment: "left",
+    verticalAlignment: "middle",
+    fillColor: i % 2 === 0 ? "#f4f8fd" : "#fff"
+  })));
+  return {
+    pageSize: "A4",
+    pageOrientation: "portrait",
+    pageMargins: [ PAGE_MARGIN_LR, 54, PAGE_MARGIN_LR, 44 ],
+    header: (page, count) => ({
+      columns: [ {
+        text: `Prüfprotokoll | ${kd.station || ""}`,
+        fontSize: 7,
+        color: "#777",
+        margin: [ PAGE_MARGIN_LR, 18, 0, 0 ]
+      }, {
+        text: `Seite ${page} von ${count}`,
+        fontSize: 7,
+        color: "#777",
+        margin: [ 0, 18, PAGE_MARGIN_LR, 0 ],
+        alignment: "right"
+      } ]
+    }),
+    footer: (page, count) => ({
+      columns: [ {
+        text: `Erstellt: ${(new Date).toLocaleDateString("de-DE")}`,
+        fontSize: 6.5,
+        color: "#bbb",
+        margin: [ PAGE_MARGIN_LR, 8, 0, 0 ]
+      }, {
+        text: `Prüfer: ${u.pruefer || ""}`,
+        fontSize: 6.5,
+        color: "#bbb",
+        margin: [ 0, 8, PAGE_MARGIN_LR, 0 ],
+        alignment: "right"
+      } ]
+    }),
+    content: [ titleRow, {
+      canvas: [ {
+        type: "line",
+        x1: 0,
+        y1: 0,
+        x2: CONTENT_WIDTH,
+        y2: 0,
+        lineWidth: 1,
+        lineColor: C
+      } ],
+      margin: [ 0, 0, 0, 5 ]
+    }, stammdaten, secHead("Anlass der Prüfung"), anlassBlock, secHead("Prüfung durchgeführt nach"), normBlock, besTable, erpTable, secHead("Verwendete Messgeräte"), mgSection, {
+      ...secHead("Prüfergebnis"),
+      pageBreak: "before"
+    }, pgBlock, bemBlock, {
+      table: {
+        widths: [ "*" ],
+        body: [ [ {
+          text: "Messprotokoll",
+          bold: true,
+          fontSize: 8.5,
+          color: "#fff",
+          fillColor: C,
+          margin: [ 4, 3, 4, 3 ]
+        } ] ]
+      },
+      layout: "noBorders",
+      margin: [ 0, 6, 0, 2 ]
+    }, {
+      table: {
+        widths: [ "*", 28, 20, 20, 24, 20, 30, 30, 26, 26, 24, 20, 26, 20, 16, 26 ],
+        headerRows: 2,
+        dontBreakRows: true,
+        body: [ mpHdr1, mpHdr2, ...mpRows ]
+      },
+      layout: mpLayout
+    }, secHead("Ort, Datum und Unterschrift"), sigBlock ],
+    defaultStyle: {
+      font: "Roboto",
+      fontSize: 9
+    }
+  };
+}
+
+let _logoB64 = null;
+
+function downloadPDF() {
+  pdfMake.createPdf(buildPDF(DEMO, _logoB64)).download("Pruefprotokoll_Vorschau.pdf");
+}
+
+window.addEventListener("load", async () => {
+  const pdfDocGen = pdfMake.createPdf(buildPDF(DEMO, _logoB64));
+  pdfDocGen.getDataUrl(url => {
+    document.getElementById("loading").style.display = "none";
+    const iframe = document.getElementById("viewer");
+    iframe.src = url;
+    iframe.style.display = "block";
+  });
+});
+</script>
+</body>
+</html>
